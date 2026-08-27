@@ -1,0 +1,21 @@
+# dependencies and Next build output
+node_modules/
+.next/
+out/
+
+# local environment files; only .env.example is committed
+.env*.local
+.env
+
+# Supabase local runtime artifacts and generated secrets
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# test/build artifacts
+coverage/
+tsconfig.tsbuildinfo
+
+# OS/editor
+.DS_Store
+*.log

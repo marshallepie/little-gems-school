@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+:root { --ink: #172033; --gem: #6d3fb3; --paper: #fbfaf7; }
+body { background: var(--paper); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+a { color: var(--gem); text-decoration: underline; text-underline-offset: 3px; }

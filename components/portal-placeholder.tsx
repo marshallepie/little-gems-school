@@ -1,0 +1,1 @@
+export function PortalPlaceholder({ role }: { role: string }) { return <main className="space-y-4"><p className="font-semibold text-violet-700">Little Gems School</p><h1 className="text-3xl font-bold">{role} portal</h1><p>This secure shell is ready. Role-specific school workflows are intentionally outside the foundation milestone.</p></main>; }
