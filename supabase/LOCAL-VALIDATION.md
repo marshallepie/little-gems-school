@@ -31,22 +31,13 @@ That script is idempotent and always stops the stack again on exit. It runs:
 
 ## Last validated
 
-2026-08-28, against Supabase CLI 2.114.0 / postgres 17.6.1.158.
+The baseline was validated on 2026-08-28 against Supabase CLI 2.114.0 / postgres 17.6.1.158. This Phase 1 migration and expanded fixture set require a fresh host-side run before a deployment because the agent container intentionally has no Docker daemon.
 
-- `20260827000000_foundation.sql` applied cleanly from an empty database.
-- `seed.sql` applied cleanly: 4 roles, 1 academic year, 1 term, 2 class groups, 2 subjects.
-  The seed contains reference data only — no `profiles`, `students`, `teachers`,
-  or `guardians` rows, since those depend on `auth.users`.
-- 13 tables in `public`, all with RLS enabled, 14 policies total.
+Run `/usr/local/bin/lgs-db-validate`, then execute both scripts documented in `supabase/tests/README.md`. That validates the append-only migration chain, Phase 1 seed fixtures, existing teacher RLS, and Phase 1 relationship/integrity checks.
 
-## Known issues found during validation
+## Known environment limitations
 
-- **`public.teachers` has RLS enabled but zero policies**, so it is deny-all for
-  the `authenticated` role. Every other table has at least one SELECT policy.
-  If teacher records are meant to be readable, the baseline migration is missing
-  a `teachers` policy.
-- `imgproxy` and `pooler` do not start (disabled in `config.toml`); harmless for
-  migration/seed validation.
+- `imgproxy` and `pooler` do not start (disabled in `config.toml`); harmless for migration/seed validation.
 
 ## Safety note
 

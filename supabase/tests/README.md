@@ -1,6 +1,6 @@
 # Database behavioural tests
 
-## `teachers_rls.sql`
+## `teachers_rls.sql` and `phase1_identity_rls.sql`
 
 This is a **behavioural** RLS test: it seeds five deterministic auth identities
 (Admin, Teacher A, Teacher B, Parent, Student), switches to `authenticated` or
@@ -19,6 +19,7 @@ trap 'supabase stop' EXIT
 supabase start
 supabase db reset
 npx --yes supabase@2.114.0 db query --local --file supabase/tests/teachers_rls.sql
+npx --yes supabase@2.114.0 db query --local --file supabase/tests/phase1_identity_rls.sql
 ```
 
 Expected final test output:

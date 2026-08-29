@@ -1,6 +1,6 @@
-# Little Gems School — Phase 0 foundation
+# Little Gems School — Phase 1 identity and school structure
 
-This repository contains the approved **Native Next.js + Supabase foundation only**: a public landing page, safe authentication placeholders, role-route shells, SSR Supabase client/proxy wiring, and a relationship-oriented baseline schema with RLS. It intentionally does not implement school operations, CMS, storage, payments, communications, cloud provisioning, or real accounts/data.
+This repository contains the approved **Native Next.js + Supabase foundation plus Phase 1 identity and school structure**: Supabase email/password and reset flows, role-route shells, an admin-only mobile-first record-management surface, SSR Supabase client/proxy wiring, and relationship-oriented schema/RLS. It intentionally does not implement Phase 2 dashboards or Phase 3 operations, CMS, storage, payments, communications, cloud provisioning, or real accounts/data.
 
 ## Prerequisites
 
@@ -35,7 +35,7 @@ npm run lint
 npm run build
 ```
 
-Without the two public environment variables, public/auth pages remain usable and `/dashboard` fails safely by routing to login; configure local Supabase before testing real auth flows.
+Without the two public environment variables, public/auth pages remain usable and `/dashboard` fails safely by routing to login. Configure local Supabase before testing the real email/password and password-reset flows. Initial accounts and role assignments remain an approved administrative provisioning workflow; the browser never receives a service-role key.
 
 ## Security boundary
 
