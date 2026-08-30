@@ -12,7 +12,12 @@ async function requireAdmin() {
   const userId = claims?.claims.sub;
   if (!userId) redirect("/login");
   const { data: roles } = await supabase.from("user_roles").select("roles!inner(code)").eq("user_id", userId);
-  const allowed = roles?.some((entry) => entry.roles.some((role) => roleCodeSchema.safeParse(role.code).data === "admin"));
+  // user_roles -> roles is many-to-one, so PostgREST embeds a single object, not an array.
+  const allowed = roles?.some((entry) => {
+    const embedded = entry.roles as unknown as { code: string } | { code: string }[] | null;
+    const codes = Array.isArray(embedded) ? embedded : embedded ? [embedded] : [];
+    return codes.some((role) => roleCodeSchema.safeParse(role.code).data === "admin");
+  });
   if (!allowed) redirect("/dashboard");
   return supabase;
 }

@@ -13,7 +13,12 @@ export async function requireRole(): Promise<RoleCode> {
   const role = roleCodeSchema.safeParse(data.default_role_code);
   if (!role.success) redirect("/login");
   const { data: assigned } = await supabase.from("user_roles").select("roles!inner(code)").eq("user_id", userId);
-  const isAssigned = assigned?.some((entry) => entry.roles.some((assignedRole) => assignedRole.code === role.data));
+  // user_roles -> roles is many-to-one, so PostgREST embeds a single object, not an array.
+  const isAssigned = assigned?.some((entry) => {
+    const embedded = entry.roles as unknown as { code: string } | { code: string }[] | null;
+    const codes = Array.isArray(embedded) ? embedded : embedded ? [embedded] : [];
+    return codes.some((assignedRole) => assignedRole.code === role.data);
+  });
   if (!isAssigned) redirect("/login");
   return role.data;
 }
