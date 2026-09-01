@@ -1,6 +1,6 @@
-# Little Gems School — Phase 2 role-specific dashboards
+# Little Gems School — Phase 3 Batch 2 timetable and attendance workflows
 
-This repository contains the approved **Native Next.js + Supabase foundation, Phase 1 identity and school structure, and Phase 2 role-specific dashboards**. It includes Supabase email/password and reset flows, protected role routes, the existing admin-only mobile-first school-structure workspace, concise role-specific read-only dashboards, SSR Supabase client/proxy wiring, and relationship-oriented schema/RLS. It intentionally does **not** implement Phase 3 operations, CMS, storage, payments, communications, cloud provisioning, or real accounts/data.
+This repository contains the approved **Native Next.js + Supabase foundation, Phase 1 identity and school structure, and Phase 2 role-specific dashboards**. It includes Supabase email/password and reset flows, protected role routes, the existing admin-only mobile-first school-structure workspace, concise role-specific read-only dashboards, SSR Supabase client/proxy wiring, and relationship-oriented schema/RLS. It intentionally does **not** implement CMS, storage, payments, communications, cloud provisioning, production Supabase, or real accounts/data beyond the approved fictional local seed.
 
 ## Prerequisites
 
@@ -46,7 +46,16 @@ Without the two public environment variables, public/auth pages remain usable an
 - **Parent or guardian:** `/parent` retains `requireRole()` and shows only children linked through the signed-in guardian's relationship, with each child's active class context in mobile-friendly cards.
 - **Student:** `/student` retains `requireRole()` and shows only the signed-in student's identity and active class context.
 
-Attendance, grades, lesson planning, reports, payments, messaging, and other operational workflows are explicitly deferred to later phases; dashboard labels do not imply those workflows exist.
+## Phase 3 Batch 2: timetable and attendance
+
+This batch adds server-rendered, mobile-first timetable and attendance routes using the approved Phase 3 Batch 1 schema/RLS foundation. It does not change migrations, RLS policies, or use service-role credentials in portal flows.
+
+- **Administrators:** `/admin/operations/timetable` requires `timetable.manage` and creates timetable entries; `/admin/operations/attendance` requires `attendance.review`, filters registers, and records attendance corrections.
+- **Teachers:** `/teacher/timetable` reads entries allowed by assigned-teacher RLS. `/teacher/attendance` requires the persisted `teacher_assignment_id`, validates the assignment/date window and any timetable link against class/date weekday/session/assignment, calculates the eligible dated roster, and only writes drafts through the cookie-bound client. The supplied Batch 1 RLS policy deliberately rejects a teacher transition from `draft` to `submitted` (`WITH CHECK status = 'draft'`); without an approved RLS/RPC change, the Submit action truthfully returns the database denial rather than bypassing it. Administrators can review/correct through their approved permission.
+- **Parents:** `/parent/children/[studentId]/timetable` and `/parent/children/[studentId]/attendance` first verify the guardian-child link. Attendance reads submitted/corrected records only.
+- **Students:** `/student/timetable` is limited to current-class RLS data; `/student/attendance` additionally filters submitted/corrected, `student_visible=true` records. RLS remains the enforcement boundary for both.
+
+Room data is not collected because `timetable_entries` has no room column in the approved schema. Assignments, assessments/results, announcements, events, documents, payments, messaging, and production Supabase remain outside this batch.
 
 ## Administrative authorization hierarchy
 
