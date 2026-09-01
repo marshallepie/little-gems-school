@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
-:root { --ink: #172033; --gem: #6d3fb3; --paper: #fbfaf7; }
+:root { --ink: #172033; --gem: #6d3fb3; --paper: #fbfaf7; --primary-cta-bg: #593098; --primary-cta-bg-hover: #472477; --primary-cta-bg-disabled: #604579; --primary-cta-fg: #ffffff; --primary-cta-focus: #2e1553; }
 body { background: var(--paper); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
 a { color: var(--gem); text-decoration: underline; text-underline-offset: 3px; }
+.primary-cta { background-color: var(--primary-cta-bg); color: var(--primary-cta-fg); transition: background-color 150ms ease; }
+.primary-cta:hover { background-color: var(--primary-cta-bg-hover); }
+.primary-cta:disabled { background-color: var(--primary-cta-bg-disabled); cursor: not-allowed; }
+.primary-cta:focus-visible { outline: 2px solid var(--primary-cta-focus); outline-offset: 2px; }

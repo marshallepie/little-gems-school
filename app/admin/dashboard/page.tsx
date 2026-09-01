@@ -32,7 +32,7 @@ export default async function AdminDashboardPage() {
     <DashboardCard title="Administration">
       <p className="text-slate-700">School records, relationships, enrolments, and assignments remain in the existing management workspace.</p>
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Link className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[color:var(--gem)] px-4 py-2 font-semibold text-white no-underline hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--gem)]" href="/admin">Open school structure workspace</Link>
+        <Link className="primary-cta inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 font-semibold no-underline" href="/admin">Open school structure workspace</Link>
         {proprietor.data === true && <Link className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[color:var(--gem)] px-4 py-2 font-semibold no-underline" href="/admin/accounts">Manage account lifecycle</Link>}
       </div>
       {proprietor.data !== true && <p className="text-sm text-slate-600">Account lifecycle management is available only to the active proprietor.</p>}

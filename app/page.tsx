@@ -24,7 +24,7 @@ export default function HomePage() {
           This foundation establishes the public entry point and secure portal boundary. School operations and public content will follow approved milestones.
         </p>
         <Link
-          className="inline-block rounded bg-violet-700 px-4 py-2 font-semibold text-white no-underline transition-colors hover:bg-violet-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700"
+          className="primary-cta inline-block rounded px-4 py-2 font-semibold no-underline"
           href="/login"
         >
           School login

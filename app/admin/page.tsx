@@ -8,7 +8,7 @@ type Option = { id: string; label: string };
 function Section({ title, children }: { title: string; children: React.ReactNode }) { return <section className="rounded-lg border bg-white p-4 shadow-sm"><h2 className="mb-3 text-xl font-bold">{title}</h2>{children}</section>; }
 function Input({ name, label, type = "text", required = true }: { name: string; label: string; type?: string; required?: boolean }) { return <label className="block text-sm font-medium">{label}<input className="mt-1 min-h-11 w-full rounded border p-2" name={name} type={type} required={required} /></label>; }
 function Select({ name, label, options }: { name: string; label: string; options: Option[] }) { return <label className="block text-sm font-medium">{label}<select className="mt-1 min-h-11 w-full rounded border bg-white p-2" name={name} required><option value="">Select…</option>{options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>; }
-function Submit({ children = "Save" }: { children?: string }) { return <button className="min-h-11 rounded bg-violet-700 px-4 py-2 font-semibold text-white" type="submit">{children}</button>; }
+function Submit({ children = "Save" }: { children?: string }) { return <button className="primary-cta min-h-11 rounded px-4 py-2 font-semibold" type="submit">{children}</button>; }
 
 export default async function AdminPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdminPermission("school_records.read");

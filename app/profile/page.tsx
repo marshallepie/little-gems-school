@@ -23,7 +23,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
       <label className="block text-sm font-medium">Address<textarea className="mt-1 min-h-24 w-full rounded border p-2" name="address" defaultValue={profile.address ?? ""} maxLength={500} /></label>
       <label className="block text-sm font-medium">Avatar image URL (optional)<input className="mt-1 min-h-11 w-full rounded border p-2" name="avatar_url" type="url" defaultValue={profile.avatar_url ?? ""} placeholder="https://…" /></label>
       <p className="text-sm text-slate-600">Avatar uploads are not configured. You may use an HTTPS image URL, or leave this blank to use the standard initials placeholder.</p>
-      <button className="min-h-11 rounded bg-violet-700 px-4 py-2 font-semibold text-white" type="submit">Save and continue</button>
+      <button className="primary-cta min-h-11 rounded px-4 py-2 font-semibold" type="submit">Save and continue</button>
     </form>
   </main>;
 }
