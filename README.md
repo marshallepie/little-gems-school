@@ -37,9 +37,37 @@ npm run build
 
 Without the two public environment variables, public/auth pages remain usable and `/dashboard` fails safely by routing to login. Configure local Supabase before testing the real email/password and password-reset flows. Initial accounts and role assignments remain an approved administrative provisioning workflow; the browser never receives a service-role key.
 
+## Administrative authorization hierarchy
+
+The portal roles remain `admin`, `teacher`, `parent`, and `student`. Administrative
+access is further constrained by one active position and explicit permissions:
+`proprietor_super_admin` (Tier 1), `senior_administrator` (Tier 2), and
+`headmistress` (Tier 3). The migration deliberately replaces—rather than adds
+beside—the old permissive `has_role('admin')` RLS policies, because permissive
+policies OR-combine. An unpositioned legacy `admin` is default-denied after the
+cutover.
+
+See [`supabase/ADMINISTRATIVE_AUTHORIZATION.md`](supabase/ADMINISTRATIVE_AUTHORIZATION.md)
+for the permission matrix and the **required, executable one-time production
+bootstrap** for a zero-user/empty-migration project. It creates exactly the three
+authorized no-email Auth accounts only from a restricted server/service-role
+terminal, maps normalized admin roles and positions through an operator-only
+one-time database transaction, validates the result, then resumes ordinary
+`supabase db push`. Never hard-code UUIDs, put service keys in browser code, or put
+temporary passwords in repository files, commands, logs, or tickets.
+
+
 ## Security boundary
 
 `auth.users` remains Supabase-owned. App roles are normalized in `roles`/`user_roles`, not JWT metadata. Server checks use `auth.getClaims()` rather than authorizing from `getSession()`; `proxy.ts` refreshes session cookies. UI redirects are only UX—the database uses RLS with default deny and private `app_private` helper functions as the enforcement boundary.
+
+## Account lifecycle and first-login profile completion
+
+Only the active `proprietor_super_admin` position can use `/admin/accounts`. The server action checks that exact database position before it creates an Auth account with `auth.admin.createUser`; it never uses invitations. It generates a password only in memory and displays it once to the authenticated proprietor for Marshall's approved secure delivery. Configure `SUPABASE_SERVICE_ROLE_KEY` **only** in the server runtime—never as `NEXT_PUBLIC_*` or in client code.
+
+“Deprovision” is implemented as audited deprovisioning, not a destructive Auth delete: it immediately revokes normalized roles and administrator positions and marks the profile inactive, preserving linked student/staff/guardian records and audit history. That transaction writes a durable pending Auth-ban state. The server action first proves the requester’s active proprietor position through the normal session, then uses a server-only service-role capability to record the Auth-ban outcome with that original actor identity. Browser JWTs cannot execute either outcome RPC. If Auth fails (or durable completion recording fails), database authorization remains denied, the account is marked for retry on `/admin/accounts`, and only the proprietor can retry the idempotent ban. The same proprietor-only page lists active administrator position assignments and the latest authorization events, and can assign, replace, or revoke Tier 2/3 positions for active existing admin accounts; it cannot change the bootstrap-only proprietor position or the requester’s own position. Active `proprietor_super_admin` accounts—including another active owner—cannot be deprovisioned through this path; ownership succession is operator-only. The proprietor cannot deprovision their own account.
+
+The first-login completion guard is centralized in the authenticated server guards used by every portal route and sensitive server action. A user without `profile_completed_at` is therefore redirected to `/profile` even when directly opening `/admin`, `/admin/accounts`, `/teacher`, `/parent`, `/student`, or `/dashboard`; `/profile` and auth/recovery routes remain outside the guard.
 
 ## Before any live authentication or data
 

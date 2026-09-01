@@ -324,7 +324,34 @@ Receives broader school-level access.
 
 Security must not rely solely on frontend route protection.
 
-Database policies must enforce appropriate access.
+### Administrative authorization hierarchy
+
+The existing portal roles remain `admin`, `teacher`, `parent`, and `student`.
+Administrative users also require exactly one active position for Phase 1 school
+record access: Tier 1 `proprietor_super_admin`, Tier 2
+`senior_administrator`, or Tier 3 `headmistress`. Permissions—not title
+strings—authorize operations. Tier 1 alone manages administrator positions and
+authorization events; Tier 2 manages people and academic structure; Tier 3
+manages academic structure, enrolments, and teacher assignments but not people
+records. An `admin` role without an active position is default-denied.
+
+The initial zero-user production deployment has one separately authorized,
+restricted server-side/service-role account-creation procedure: it creates exactly
+the three approved no-email Auth identities with temporary passwords delivered only
+by Marshall. Before policy cutover, a database-operator-only one-time transaction
+independently verifies those identities, repairs any missing trigger profiles,
+normalizes their `admin` roles/default roles, records identity/position evidence,
+and maps proprietor, senior administrator, and headmistress positions. It uses no
+hard-coded UUIDs or browser service key and is retired after successful cutover.
+All later provisioning must match a verified existing Supabase Auth identity and
+use the proprietor-authorized server workflow. The full runbook is in
+`supabase/ADMINISTRATIVE_AUTHORIZATION.md`.
+
+### Account lifecycle and self-profile completion
+
+Only the active `proprietor_super_admin` position may create or deprovision portal accounts. Lifecycle operations require server-side authorization and database RPC enforcement; UI route visibility is not authorization. Accounts are created without invitations using a server-only Auth administration key, with an in-memory temporary password delivered only by Marshall through an approved secure channel. Lifecycle audit events record actor, subject, and action without passwords or secrets.
+
+Account “deletion” is auditable deprovisioning: revoke roles/positions, set the profile inactive, and ban the Auth identity while retaining linked school records. On first successful login, users must complete only their own full name, phone, address, and avatar setting. Avatar file uploads require separately approved secure Storage configuration; until then an optional HTTPS avatar URL/initials placeholder is used. Database policies must enforce appropriate access.
 
 ---
 

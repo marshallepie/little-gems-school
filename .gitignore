@@ -2,6 +2,7 @@
 node_modules/
 .next/
 out/
+.netlify/
 
 # local environment files; only .env.example is committed
 .env*.local
