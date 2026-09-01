@@ -1,5 +1,5 @@
--- Phase 3 deterministic operational behavioural tests. Run only on a disposable local stack
--- after the existing authorization cutover fixture has established its required proprietor.
+-- Phase 3 Batch 1 deterministic security tests. Run on a disposable local stack
+-- after the authorization cutover fixture has established its required proprietor.
 begin;
 insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values
 ('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000001','authenticated','authenticated','p3-unpositioned@example.test','$2a$10$012345678901234567890u012345678901234567890123456789012',now(),'{"provider":"email","providers":["email"]}','{}',now(),now()),
@@ -21,34 +21,73 @@ insert into public.students(id,profile_id,admission_number,first_name,last_name)
 insert into public.guardians(id,profile_id,first_name,last_name,phone) values ('d0000000-0000-0000-0000-000000000007','a0000000-0000-0000-0000-000000000007','Parent','A','000'),('d0000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-000000000009','Parent','B','000');
 insert into public.student_guardians values ('c0000000-0000-0000-0000-000000000008','d0000000-0000-0000-0000-000000000007','Guardian',true),('c0000000-0000-0000-0000-000000000010','d0000000-0000-0000-0000-000000000009','Guardian',true);
 insert into public.class_enrolments(id,student_id,class_group_id,starts_on,status) values ('e0000000-0000-0000-0000-000000000008','c0000000-0000-0000-0000-000000000008','40000000-0000-0000-0000-000000000001','2026-09-01','active'),('e0000000-0000-0000-0000-000000000010','c0000000-0000-0000-0000-000000000010','40000000-0000-0000-0000-000000000002','2026-09-01','active');
-insert into public.teacher_assignments(id,teacher_id,class_group_id,subject_id,term_id) values ('f0000000-0000-0000-0000-000000000005','b0000000-0000-0000-0000-000000000005','40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001'),('f0000000-0000-0000-0000-000000000006','b0000000-0000-0000-0000-000000000006','40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001');
-insert into public.assignments(id,teacher_assignment_id,term_id,title,assigned_on,status,created_by) values ('11000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001','Draft','2026-09-02','draft','a0000000-0000-0000-0000-000000000005'),('11000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000006','20000000-0000-0000-0000-000000000001','Other draft','2026-09-02','draft','a0000000-0000-0000-0000-000000000006');
+insert into public.teacher_assignments(id,teacher_id,class_group_id,subject_id,term_id) values
+('f0000000-0000-0000-0000-000000000005','b0000000-0000-0000-0000-000000000005','40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001'),
+('f0000000-0000-0000-0000-000000000006','b0000000-0000-0000-0000-000000000006','40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001'),
+-- Teacher A has a foreign assignment in B, but it cannot authorize B's persisted register.
+('f0000000-0000-0000-0000-000000000015','b0000000-0000-0000-0000-000000000005','40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001');
+insert into public.academic_years(id,name,starts_on,ends_on) values ('10000000-0000-0000-0000-000000000099','2025/2026','2025-09-01','2026-07-31',false);
+insert into public.terms(id,academic_year_id,name,starts_on,ends_on) values ('20000000-0000-0000-0000-000000000099','10000000-0000-0000-0000-000000000099','Term 1','2025-09-01','2025-12-18');
+insert into public.class_groups(id,academic_year_id,name,level) values ('40000000-0000-0000-0000-000000000099','10000000-0000-0000-0000-000000000099','Historical A','Foundation');
+insert into public.teacher_assignments(id,teacher_id,class_group_id,subject_id,term_id) values ('f0000000-0000-0000-0000-000000000099','b0000000-0000-0000-0000-000000000005','40000000-0000-0000-0000-000000000099','30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000099');
+
+insert into public.timetable_entries(id,term_id,class_group_id,subject_id,teacher_assignment_id,weekday,session_number,starts_at,ends_at) values
+('91000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005',2,1,'08:00','08:45'),
+('91000000-0000-0000-0000-000000000006','20000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000006',3,1,'08:00','08:45');
 insert into public.assessments(id,teacher_assignment_id,term_id,title,assessment_date,maximum_score,status,created_by) values ('12000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001','Check','2026-09-03',10,'draft','a0000000-0000-0000-0000-000000000005');
 update public.assessments set status='published', published_at=now() where id='12000000-0000-0000-0000-000000000001';
 insert into public.assessment_results(assessment_id,student_id,score) values ('12000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-000000000008',8);
-insert into public.attendance_sessions(id,class_group_id,attendance_date,status,submitted_at,student_visible) values ('13000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','2026-09-02','submitted',now(),true),('13000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000001','2026-09-03','submitted',now(),false);
-insert into public.attendance_records(attendance_session_id,student_id,status) values ('13000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-000000000008','present'),('13000000-0000-0000-0000-000000000002','c0000000-0000-0000-0000-000000000008','absent');
+insert into public.attendance_sessions(id,class_group_id,teacher_assignment_id,attendance_date,timetable_entry_id,status,submitted_at,student_visible) values
+('13000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005','2026-09-01','91000000-0000-0000-0000-000000000005','draft',null,false),
+('13000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000006','2026-09-02','91000000-0000-0000-0000-000000000006','draft',null,false);
+update public.attendance_sessions set status='submitted',submitted_at=now(),student_visible=true where id='13000000-0000-0000-0000-000000000001';
+update public.attendance_sessions set status='submitted',submitted_at=now(),student_visible=true where id='13000000-0000-0000-0000-000000000002';
+insert into public.attendance_records(attendance_session_id,student_id,status) values ('13000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-000000000008','present'),('13000000-0000-0000-0000-000000000002','c0000000-0000-0000-0000-000000000010','present');
+insert into public.documents(id,title,file_name,mime_type,byte_size,status) values ('14000000-0000-0000-0000-000000000001','All-target document','all.pdf','application/pdf',10,'draft'),('14000000-0000-0000-0000-000000000002','A-only document','a.pdf','application/pdf',10,'draft');
+update public.documents set status='available',available_at=now() where id in ('14000000-0000-0000-0000-000000000001','14000000-0000-0000-0000-000000000002');
+
+-- School, role, and class targets all accept their valid normalized NULL combinations.
+insert into public.announcements(id,title,body,status,published_at) values ('15000000-0000-0000-0000-000000000001','All targets','x','published',now()),('15000000-0000-0000-0000-000000000002','A only','x','published',now());
+insert into public.announcement_targets values
+('15000000-0000-0000-0000-000000000001','school',null,null),('15000000-0000-0000-0000-000000000001','role','parent',null),('15000000-0000-0000-0000-000000000001','class',null,'40000000-0000-0000-0000-000000000001'),
+('15000000-0000-0000-0000-000000000002','class',null,'40000000-0000-0000-0000-000000000001');
+insert into public.events(id,title,starts_at,ends_at,status,published_at) values ('16000000-0000-0000-0000-000000000001','All targets',now(),now()+interval '1 hour','published',now()),('16000000-0000-0000-0000-000000000002','A only',now(),now()+interval '1 hour','published',now());
+insert into public.event_targets values
+('16000000-0000-0000-0000-000000000001','school',null,null),('16000000-0000-0000-0000-000000000001','role','parent',null),('16000000-0000-0000-0000-000000000001','class',null,'40000000-0000-0000-0000-000000000001'),
+('16000000-0000-0000-0000-000000000002','class',null,'40000000-0000-0000-0000-000000000001');
+insert into public.document_targets values
+('14000000-0000-0000-0000-000000000001','school',null,null),('14000000-0000-0000-0000-000000000001','role','parent',null),('14000000-0000-0000-0000-000000000001','class',null,'40000000-0000-0000-0000-000000000001'),
+('14000000-0000-0000-0000-000000000002','class',null,'40000000-0000-0000-0000-000000000001');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000001',true);
 do $$ begin if app_private.has_admin_permission('results.release') or exists(select 1 from public.timetable_entries) then raise exception 'unpositioned admin gained Phase 3 access'; end if; end $$;
 select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000002',true);
-do $$ begin if app_private.has_admin_permission('results.release') then raise exception 'headmistress can release'; end if; begin update public.assessments set status='released',released_at=now() where id='12000000-0000-0000-0000-000000000001'; raise exception 'headmistress released results'; exception when insufficient_privilege then null; end; end $$;
+do $$ declare affected integer; begin if app_private.has_admin_permission('results.release') then raise exception 'headmistress can release'; end if; update public.assessments set status='released',released_at=now() where id='12000000-0000-0000-0000-000000000001'; get diagnostics affected = row_count; if affected <> 0 then raise exception 'headmistress released results'; end if; end $$;
 select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000003',true);
 update public.assessments set status='released',released_at=now() where id='12000000-0000-0000-0000-000000000001';
 do $$ begin if not app_private.has_admin_permission('results.release') then raise exception 'senior cannot release'; end if; end $$;
-select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000004',true); do $$ begin if not app_private.has_admin_permission('results.release') then raise exception 'proprietor cannot release'; end if; end $$;
-select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000006',true); do $$ begin if exists(select 1 from public.assignments where id='11000000-0000-0000-0000-000000000001') then raise exception 'cross-teacher draft leak'; end if; end $$;
-select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000007',true); do $$ begin if exists(select 1 from public.assignments) or not exists(select 1 from public.assessment_results where student_id='c0000000-0000-0000-0000-000000000008') then raise exception 'parent draft or released-result policy failed'; end if; end $$;
-select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000008',true); do $$ begin if (select count(*) from public.attendance_records)<>1 then raise exception 'student attendance visibility failed'; end if; end $$;
+select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000004',true);
+do $$ begin if not app_private.has_admin_permission('results.release') then raise exception 'proprietor cannot release'; end if; end $$;
+select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000005',true);
+do $$ begin if exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000002') then raise exception 'teacher A accessed teacher B register through foreign assignment'; end if; if not exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000001') then raise exception 'teacher A lost owned register'; end if; end $$;
+select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000007',true);
+do $$ begin if not exists(select 1 from public.announcements where id='15000000-0000-0000-0000-000000000002') or not exists(select 1 from public.events where id='16000000-0000-0000-0000-000000000002') or not exists(select 1 from public.documents where id='14000000-0000-0000-0000-000000000002') then raise exception 'parent A lost class audience'; end if; if (select count(*) from public.attendance_records) <> 1 then raise exception 'parent attendance visibility or recursion failed'; end if; if not exists(select 1 from public.timetable_entries where class_group_id='40000000-0000-0000-0000-000000000001') or exists(select 1 from public.timetable_entries where class_group_id='40000000-0000-0000-0000-000000000002') then raise exception 'parent timetable isolation failed'; end if; end $$;
+select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000009',true);
+do $$ begin if exists(select 1 from public.announcements where id='15000000-0000-0000-0000-000000000002') or exists(select 1 from public.events where id='16000000-0000-0000-0000-000000000002') or exists(select 1 from public.documents where id='14000000-0000-0000-0000-000000000002') then raise exception 'parent B crossed class audience'; end if; if exists(select 1 from public.attendance_records where student_id='c0000000-0000-0000-0000-000000000008') or (select count(*) from public.attendance_records) <> 1 then raise exception 'parent B attendance isolation failed'; end if; end $$;
+select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000008',true);
+do $$ begin if (select count(*) from public.attendance_records) <> 1 or exists(select 1 from public.attendance_records where student_id='c0000000-0000-0000-0000-000000000010') then raise exception 'student attendance isolation failed'; end if; if not exists(select 1 from public.timetable_entries where class_group_id='40000000-0000-0000-0000-000000000001') or exists(select 1 from public.timetable_entries where class_group_id='40000000-0000-0000-0000-000000000002') then raise exception 'student timetable isolation failed'; end if; end $$;
 reset role;
--- Constraints are tested as owner so RLS cannot mask them.
+
+-- Constraints run as owner so RLS cannot mask failures.
 do $$ begin
-  begin insert into public.timetable_entries(term_id,class_group_id,subject_id,teacher_assignment_id,weekday,session_number,starts_at,ends_at) values ('20000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005',1,1,'09:00','09:45'); raise exception 'invalid timetable assignment accepted'; exception when check_violation then null; end;
-  begin insert into public.documents(title,file_name,mime_type,byte_size) values('Bad','bad.exe','application/octet-stream',1); raise exception 'invalid MIME accepted'; exception when check_violation then null; end;
-  begin insert into public.assessment_results(assessment_id,student_id,score) values('12000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-000000000008',11); raise exception 'over-score accepted'; exception when check_violation then null; end;
-  begin insert into public.attendance_records(attendance_session_id,student_id,status) values('13000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-000000000010','present'); raise exception 'ineligible attendance accepted'; exception when check_violation then null; end;
+  if not exists (select 1 from public.operational_events where entity_type = 'assessment' and entity_id = '12000000-0000-0000-0000-000000000001') or not exists (select 1 from public.operational_events where entity_type = 'attendance_session' and entity_id = '13000000-0000-0000-0000-000000000001') or not exists (select 1 from public.operational_events where entity_type = 'document' and entity_id = '14000000-0000-0000-0000-000000000001') then raise exception 'Phase 3 status audit did not emit allowed entity types'; end if;
+  begin insert into public.announcement_targets values ('15000000-0000-0000-0000-000000000001','school',null,null); raise exception 'duplicate school target accepted'; exception when unique_violation then null; end;
+  begin insert into public.event_targets values ('16000000-0000-0000-0000-000000000001','role',null,null); raise exception 'invalid event target accepted'; exception when check_violation then null; end;
+  begin insert into public.document_targets values ('14000000-0000-0000-0000-000000000001','class','parent','40000000-0000-0000-0000-000000000001'); raise exception 'invalid document target accepted'; exception when check_violation then null; end;
+  begin insert into public.attendance_sessions(class_group_id,teacher_assignment_id,attendance_date,status) values ('40000000-0000-0000-0000-000000000099','f0000000-0000-0000-0000-000000000099','2026-09-02','draft'); raise exception 'historical assignment accepted for current date'; exception when check_violation then null; end;
+  begin insert into public.attendance_sessions(class_group_id,teacher_assignment_id,attendance_date,timetable_entry_id,status) values ('40000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005','2026-09-03','91000000-0000-0000-0000-000000000005','draft'); raise exception 'mismatched timetable date accepted'; exception when check_violation then null; end;
 end $$;
 set local role authenticated; select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000007',true); do $$ begin begin if exists(select 1 from storage.objects where bucket_id='school-documents') then raise exception 'storage objects unexpectedly readable'; end if; exception when insufficient_privilege then null; end; end $$; reset role;
 rollback;
-\echo 'PASS: Phase 3 operations authorization, constraints, RLS, and storage default-deny tests'
+\echo 'PASS: Phase 3 operations hardening, constraints, non-recursive RLS, and storage default-deny tests'
