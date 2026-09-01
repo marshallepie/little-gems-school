@@ -8,7 +8,14 @@ export type AdminPermission =
   | "academic_structure.manage"
   | "enrolments.manage"
   | "teacher_assignments.manage"
-  | "authorization.manage";
+  | "authorization.manage"
+  | "timetable.manage"
+  | "attendance.review"
+  | "assessments.review"
+  | "results.release"
+  | "communications.manage"
+  | "calendar.manage"
+  | "documents.manage";
 
 type AuthenticatedClient = Awaited<ReturnType<typeof createClient>>;
 

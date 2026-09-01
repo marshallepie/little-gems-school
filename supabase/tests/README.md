@@ -28,6 +28,7 @@ supabase migration up --local
 npx --yes supabase@2.114.0 db query --local --file supabase/tests/administrative_authorization.sql
 npx --yes supabase@2.114.0 db query --local --file supabase/tests/account_lifecycle_and_profiles.sql
 npx --yes supabase@2.114.0 db query --local --file supabase/tests/server_only_authorization_workflows.sql
+npx --yes supabase@2.114.0 db query --local --file supabase/tests/phase3_operations_rls.sql
 ```
 
 Expected final authorization output:

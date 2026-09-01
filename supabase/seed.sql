@@ -37,3 +37,16 @@ on conflict (id) do nothing;
 insert into public.teacher_assignments (id, teacher_id, class_group_id, subject_id, term_id) values
   ('90000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001')
 on conflict (id) do nothing;
+
+-- Deterministic fictional Phase 3 reference fixture; no portal identity or file object.
+-- The guard keeps historical reset validation (which intentionally stops before Phase 3)
+-- compatible with this single shared seed file.
+do $$
+begin
+  if to_regclass('public.timetable_entries') is not null then
+    insert into public.timetable_entries (id, term_id, class_group_id, subject_id, teacher_assignment_id, weekday, session_number, starts_at, ends_at)
+    values ('91000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', 1, 1, '08:00', '08:45')
+    on conflict (id) do nothing;
+  end if;
+end;
+$$;
