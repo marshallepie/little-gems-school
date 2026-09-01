@@ -45,3 +45,47 @@ export function readAttendanceStatuses(formData: FormData, studentIds: string[])
   }));
   return z.array(attendanceRecordSchema).min(1, "No eligible students were found").safeParse(entries);
 }
+
+const optionalUuid = z.union([uuid, z.literal("")]);
+const optionalText = z.string().trim().max(2_000, "Feedback must be 2,000 characters or fewer");
+
+export const assignmentSchema = z.object({
+  teacher_assignment_id: uuid,
+  term_id: uuid,
+  title: z.string().trim().min(1, "Title is required").max(200, "Title must be 200 characters or fewer"),
+  instructions: z.string().trim().max(10_000, "Instructions must be 10,000 characters or fewer"),
+  assigned_on: isoDate,
+  due_on: z.union([isoDate, z.literal("")]),
+}).refine(({ assigned_on, due_on }) => !due_on || due_on >= assigned_on, {
+  path: ["due_on"], message: "Due date cannot be before the assigned date",
+});
+
+export const assignmentIdSchema = z.object({ assignment_id: uuid });
+
+export const assessmentSchema = z.object({
+  teacher_assignment_id: uuid,
+  term_id: uuid,
+  assignment_id: optionalUuid,
+  title: z.string().trim().min(1, "Title is required").max(200, "Title must be 200 characters or fewer"),
+  assessment_date: isoDate,
+  maximum_score: z.coerce.number().finite().positive("Maximum score must be greater than zero").max(999_999.99),
+});
+
+export const assessmentResultSchema = z.object({
+  assessment_id: uuid,
+  student_id: uuid,
+  score: z.coerce.number().finite().min(0, "Score cannot be negative").max(999_999.99),
+  feedback: optionalText,
+});
+
+export const releaseAssessmentSchema = z.object({ assessment_id: uuid });
+
+export function readAssessmentResults(formData: FormData, studentIds: string[]) {
+  const entries = studentIds.map((studentId) => ({
+    assessment_id: String(formData.get("assessment_id") ?? ""),
+    student_id: studentId,
+    score: formData.get(`score_${studentId}`),
+    feedback: formData.get(`feedback_${studentId}`) ?? "",
+  }));
+  return z.array(assessmentResultSchema).min(1, "No eligible students were found").safeParse(entries);
+}

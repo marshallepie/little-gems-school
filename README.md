@@ -1,4 +1,4 @@
-# Little Gems School — Phase 3 Batch 2 timetable and attendance workflows
+# Little Gems School — Phase 3 Batch 3 assignments and results workflows
 
 This repository contains the approved **Native Next.js + Supabase foundation, Phase 1 identity and school structure, and Phase 2 role-specific dashboards**. It includes Supabase email/password and reset flows, protected role routes, the existing admin-only mobile-first school-structure workspace, concise role-specific read-only dashboards, SSR Supabase client/proxy wiring, and relationship-oriented schema/RLS. It intentionally does **not** implement CMS, storage, payments, communications, cloud provisioning, production Supabase, or real accounts/data beyond the approved fictional local seed.
 
@@ -46,16 +46,18 @@ Without the two public environment variables, public/auth pages remain usable an
 - **Parent or guardian:** `/parent` retains `requireRole()` and shows only children linked through the signed-in guardian's relationship, with each child's active class context in mobile-friendly cards.
 - **Student:** `/student` retains `requireRole()` and shows only the signed-in student's identity and active class context.
 
-## Phase 3 Batch 2: timetable and attendance
+## Phase 3 Batches 2–3: operations, assignments, and results
 
-This batch adds server-rendered, mobile-first timetable and attendance routes using the approved Phase 3 Batch 1 schema/RLS foundation. It does not change migrations, RLS policies, or use service-role credentials in portal flows.
+These server-rendered, mobile-first routes use the approved Phase 3 schema/RLS foundation only. They do not change migrations, RLS policies, production Supabase, or use a service-role credential in portal workflows.
 
-- **Administrators:** `/admin/operations/timetable` requires `timetable.manage` and creates timetable entries; `/admin/operations/attendance` requires `attendance.review`, filters registers, and records attendance corrections.
-- **Teachers:** `/teacher/timetable` reads entries allowed by assigned-teacher RLS. `/teacher/attendance` requires the persisted `teacher_assignment_id`, validates the assignment/date window and any timetable link against class/date weekday/session/assignment, calculates the eligible dated roster, and only writes drafts through the cookie-bound client. The supplied Batch 1 RLS policy deliberately rejects a teacher transition from `draft` to `submitted` (`WITH CHECK status = 'draft'`); without an approved RLS/RPC change, the Submit action truthfully returns the database denial rather than bypassing it. Administrators can review/correct through their approved permission.
-- **Parents:** `/parent/children/[studentId]/timetable` and `/parent/children/[studentId]/attendance` first verify the guardian-child link. Attendance reads submitted/corrected records only.
-- **Students:** `/student/timetable` is limited to current-class RLS data; `/student/attendance` additionally filters submitted/corrected, `student_visible=true` records. RLS remains the enforcement boundary for both.
+- **Teachers:** `/teacher/assignments` validates a selected, owned teaching assignment and term before it writes drafts. `/teacher/assessments` creates only draft assessments, validates an optional linked assignment against the same teaching assignment/term, calculates the roster on the assessment date server-side, and upserts results only for that roster while enforcing the maximum score. Teachers have no release action.
+- **Assessment review:** `/admin/operations/assessments` requires `assessments.review` server-side. It may publish draft assessments for review. The release control is rendered only after a server-side `results.release` permission check and its server action independently requires `results.release`; only the proprietor and senior administrator receive that permission. Headmistress can review but cannot release.
+- **Families:** `/parent/children/[studentId]/assignments` and `/results` explicitly prove the signed-in guardian-to-child link before reading. `/student/assignments` and `/results` first resolve the signed-in student record. Assignment views query published work for the relevant active class; result views filter the parent assessment to `released`. RLS remains the enforcement boundary in addition to these server-side relationship checks.
+- **Existing Batch 2 routes:** timetable and attendance remain as described below. The supplied Batch 1 RLS policy deliberately rejects a teacher transition from `draft` to `submitted` for attendance; without an approved RLS/RPC change, the Submit action truthfully returns the database denial rather than bypassing it.
 
-Room data is not collected because `timetable_entries` has no room column in the approved schema. Assignments, assessments/results, announcements, events, documents, payments, messaging, and production Supabase remain outside this batch.
+The approved assignments teacher policy permits teachers to create and edit their own drafts. Its `WITH CHECK status = 'draft'` also prevents a teacher session from transitioning a draft to `published` or `closed`. The assignment screen makes a normal cookie-bound request and surfaces that database denial; it does not bypass the policy with a service role. Enabling teacher publication/archival requires an approved database policy or narrowly scoped security-definer workflow outside this batch.
+
+Room data is not collected because `timetable_entries` has no room column in the approved schema. Announcements, events, documents, payments, messaging, and production Supabase remain outside these batches.
 
 ## Administrative authorization hierarchy
 

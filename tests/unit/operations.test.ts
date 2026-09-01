@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attendanceSessionSchema, readAttendanceStatuses, timetableEntrySchema } from "../../lib/validations/operations";
+import { assessmentSchema, assignmentSchema, attendanceSessionSchema, readAssessmentResults, readAttendanceStatuses, timetableEntrySchema } from "../../lib/validations/operations";
 
 const id = "11111111-1111-4111-8111-111111111111";
 
@@ -17,5 +17,24 @@ describe("Phase 3 Batch 2 operation validation", () => {
     expect(readAttendanceStatuses(form, [id]).success).toBe(true);
     form.set(`status_${id}`, "unknown");
     expect(readAttendanceStatuses(form, [id]).success).toBe(false);
+  });
+
+  it("rejects assignment date inversions and accepts a bounded draft payload", () => {
+    const valid = { teacher_assignment_id: id, term_id: id, title: "Reading", instructions: "Read chapter 1", assigned_on: "2026-09-01", due_on: "2026-09-03" };
+    expect(assignmentSchema.safeParse(valid).success).toBe(true);
+    expect(assignmentSchema.safeParse({ ...valid, due_on: "2026-08-31" }).success).toBe(false);
+  });
+
+  it("requires a positive maximum assessment score", () => {
+    const valid = { teacher_assignment_id: id, term_id: id, assignment_id: "", title: "Quiz", assessment_date: "2026-09-02", maximum_score: "10" };
+    expect(assessmentSchema.safeParse(valid).success).toBe(true);
+    expect(assessmentSchema.safeParse({ ...valid, maximum_score: "0" }).success).toBe(false);
+  });
+
+  it("shapes one valid result per server-selected roster pupil", () => {
+    const form = new FormData(); form.set("assessment_id", id); form.set(`score_${id}`, "8.5"); form.set(`feedback_${id}`, "Good work");
+    const parsed = readAssessmentResults(form, [id]);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data).toEqual([{ assessment_id: id, student_id: id, score: 8.5, feedback: "Good work" }]);
   });
 });
