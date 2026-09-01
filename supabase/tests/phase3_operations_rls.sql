@@ -33,7 +33,8 @@ insert into public.teacher_assignments(id,teacher_id,class_group_id,subject_id,t
 
 insert into public.timetable_entries(id,term_id,class_group_id,subject_id,teacher_assignment_id,weekday,session_number,starts_at,ends_at) values
 ('91000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005',2,1,'08:00','08:45'),
-('91000000-0000-0000-0000-000000000006','20000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000006',3,1,'08:00','08:45');
+('91000000-0000-0000-0000-000000000006','20000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000006',3,1,'08:00','08:45'),
+('91000000-0000-0000-0000-000000000016','20000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000015',3,2,'09:00','09:45');
 insert into public.assessments(id,teacher_assignment_id,term_id,title,assessment_date,maximum_score,status,created_by) values ('12000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000001','Check','2026-09-03',10,'draft','a0000000-0000-0000-0000-000000000005');
 update public.assessments set status='published', published_at=now() where id='12000000-0000-0000-0000-000000000001';
 insert into public.assessment_results(assessment_id,student_id,score) values ('12000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-000000000008',8);
@@ -41,7 +42,6 @@ insert into public.attendance_sessions(id,class_group_id,teacher_assignment_id,a
 ('13000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005','2026-09-01','91000000-0000-0000-0000-000000000005','draft',null,false),
 ('13000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','f0000000-0000-0000-0000-000000000006','2026-09-02','91000000-0000-0000-0000-000000000006','draft',null,false),
 ('13000000-0000-0000-0000-000000000003','40000000-0000-0000-0000-000000000001','f0000000-0000-0000-0000-000000000005','2026-09-03',null,'draft',null,false);
-update public.attendance_sessions set status='submitted',submitted_at=now(),student_visible=true where id='13000000-0000-0000-0000-000000000001';
 insert into public.attendance_records(attendance_session_id,student_id,status) values ('13000000-0000-0000-0000-000000000001','c0000000-0000-0000-0000-000000000008','present'),('13000000-0000-0000-0000-000000000002','c0000000-0000-0000-0000-000000000010','present');
 insert into public.documents(id,title,file_name,mime_type,byte_size,status,created_by) values ('14000000-0000-0000-0000-000000000001','All-target document','all.pdf','application/pdf',10,'draft',null),('14000000-0000-0000-0000-000000000002','A-only document','a.pdf','application/pdf',10,'draft',null),('14000000-0000-0000-0000-000000000003','Creator-only document','creator.pdf','application/pdf',10,'draft','a0000000-0000-0000-0000-000000000009');
 update public.documents set status='available',available_at=now() where id in ('14000000-0000-0000-0000-000000000001','14000000-0000-0000-0000-000000000002','14000000-0000-0000-0000-000000000003');
@@ -70,9 +70,23 @@ do $$ begin if not app_private.has_admin_permission('results.release') then rais
 select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000004',true);
 do $$ begin if not app_private.has_admin_permission('results.release') then raise exception 'proprietor cannot release'; end if; end $$;
 select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000005',true);
-do $$ declare changed integer; begin
+do $$ declare changed integer; identity_sqlstate text; begin
   if exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000002') then raise exception 'teacher A accessed teacher B register through foreign assignment'; end if;
   if not exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000001') then raise exception 'teacher A lost owned register'; end if;
+  begin
+    update public.attendance_sessions
+    set teacher_assignment_id='f0000000-0000-0000-0000-000000000015',
+        class_group_id='40000000-0000-0000-0000-000000000002',
+        attendance_date='2026-09-02',
+        session_number=2,
+        timetable_entry_id='91000000-0000-0000-0000-000000000016'
+    where id='13000000-0000-0000-0000-000000000001';
+    raise exception 'teacher A rewrote owned draft register identity';
+  exception when insufficient_privilege then
+    get stacked diagnostics identity_sqlstate = returned_sqlstate;
+    if identity_sqlstate <> '42501' then raise exception 'teacher identity freeze returned SQLSTATE %, expected 42501', identity_sqlstate; end if;
+  end;
+  if not exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000001' and teacher_assignment_id='f0000000-0000-0000-0000-000000000005' and class_group_id='40000000-0000-0000-0000-000000000001' and attendance_date='2026-09-01' and session_number=1 and timetable_entry_id='91000000-0000-0000-0000-000000000005') then raise exception 'teacher identity freeze changed owned draft'; end if;
   update public.attendance_sessions set updated_by = null where id='13000000-0000-0000-0000-000000000003';
   if not exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000003' and status='draft' and not student_visible) then raise exception 'teacher A could not retain owned draft'; end if;
   begin update public.attendance_sessions set student_visible=true where id='13000000-0000-0000-0000-000000000003'; raise exception 'teacher A made draft student-visible'; exception when insufficient_privilege then null; end;
@@ -91,8 +105,16 @@ do $$ declare changed integer; begin
   if exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000002') then raise exception 'teacher A changed teacher B register'; end if;
 end $$;
 select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000004',true);
-update public.attendance_sessions set status='corrected', submitted_at=now(), student_visible=true where id='13000000-0000-0000-0000-000000000002';
-do $$ begin if not exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000002' and status='corrected') then raise exception 'attendance reviewer could not correct register'; end if; end $$;
+update public.attendance_sessions set status='submitted', submitted_at=now(), student_visible=true where id='13000000-0000-0000-0000-000000000001';
+update public.attendance_sessions
+set teacher_assignment_id='f0000000-0000-0000-0000-000000000015',
+    session_number=2,
+    timetable_entry_id='91000000-0000-0000-0000-000000000016',
+    status='corrected',
+    submitted_at=now(),
+    student_visible=true
+where id='13000000-0000-0000-0000-000000000002';
+do $$ begin if not exists(select 1 from public.attendance_sessions where id='13000000-0000-0000-0000-000000000002' and teacher_assignment_id='f0000000-0000-0000-0000-000000000015' and session_number=2 and timetable_entry_id='91000000-0000-0000-0000-000000000016' and status='corrected') then raise exception 'attendance reviewer could not correct register identity'; end if; end $$;
 select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000007',true);
 do $$ begin if not exists(select 1 from public.announcements where id='15000000-0000-0000-0000-000000000002') or not exists(select 1 from public.events where id='16000000-0000-0000-0000-000000000002') or not exists(select 1 from public.documents where id='14000000-0000-0000-0000-000000000002') then raise exception 'parent A lost class audience'; end if; if exists(select 1 from public.documents where id='14000000-0000-0000-0000-000000000003') then raise exception 'parent A read unrelated creator document'; end if; if (select count(*) from public.attendance_records) <> 1 then raise exception 'parent attendance visibility or recursion failed'; end if; if not exists(select 1 from public.timetable_entries where class_group_id='40000000-0000-0000-0000-000000000001') or exists(select 1 from public.timetable_entries where class_group_id='40000000-0000-0000-0000-000000000002') then raise exception 'parent timetable isolation failed'; end if; end $$;
 select set_config('request.jwt.claim.sub','a0000000-0000-0000-0000-000000000009',true);
