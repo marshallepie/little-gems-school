@@ -16,10 +16,33 @@ runs **host-side** instead.
 On the VPS host (as root, not inside the agent container):
 
 ```
-/usr/local/bin/lgs-db-validate
+scripts/db-behavioural-validate.sh
 ```
 
-That script is idempotent and always stops the stack again on exit. It runs:
+That is the executable form of the sequence in `supabase/tests/README.md`. It
+is idempotent, always stops the stack again on exit, and restores `hermes`
+(uid 10000) ownership of `supabase/`. It applies the migration chain, seeds the
+authorization cutover fixture, and runs every behavioural RLS suite including
+`phase3_operations_rls.sql`.
+
+### Do not use `lgs-db-validate` for migration validation
+
+`/usr/local/bin/lgs-db-validate` does a plain `supabase db reset`, which applies
+the whole chain onto an empty database. Since
+`20260831010000_administrative_authorization_cutover.sql` landed, that **always
+fails closed**:
+
+```
+ERROR: authorization cutover blocked: active proprietor_super_admin mapping for
+verified <proprietor> is required (SQLSTATE P0001)
+```
+
+That is the gate working as designed, not a regression: a bare reset has no
+reviewed proprietor mapping, so the cutover correctly refuses. The helper is
+still useful for its schema / RLS / policy-count report, but only against a
+database the behavioural script has already brought up to head.
+
+It runs:
 
 1. `supabase start`
 2. `supabase db reset` — applies `supabase/migrations/*.sql`, then `supabase/seed.sql`
@@ -33,7 +56,15 @@ That script is idempotent and always stops the stack again on exit. It runs:
 
 The baseline was validated on 2026-08-28 against Supabase CLI 2.114.0 / postgres 17.6.1.158. This Phase 1 migration and expanded fixture set require a fresh host-side run before a deployment because the agent container intentionally has no Docker daemon.
 
-Run `/usr/local/bin/lgs-db-validate`, then execute both scripts documented in `supabase/tests/README.md`. That validates the append-only migration chain, Phase 1 seed fixtures, existing teacher RLS, and Phase 1 relationship/integrity checks.
+Run `scripts/db-behavioural-validate.sh`. That validates the append-only migration chain, the authorization cutover gate, seed fixtures, teacher RLS, Phase 1 relationship/integrity checks, and the Phase 3 operations RLS suite.
+
+**Phase 3 is not validated.** A host-side run on 2026-09-04 got the harness
+working and passed five suites, then stopped on two defects in the code under
+test — a forward reference to `public.documents` that prevents the migration
+chain applying to a fresh database, and an assertion in
+`account_lifecycle_and_profiles.sql` that runs under an RLS policy which hides
+the rows it checks. Both are described in `supabase/tests/README.md`. The
+Phase 3 RLS suite has still never executed.
 
 ## Known environment limitations
 

@@ -20,3 +20,6 @@ tsconfig.tsbuildinfo
 # OS/editor
 .DS_Store
 *.log
+
+# personal Claude Code permission grants
+.claude/settings.local.json
