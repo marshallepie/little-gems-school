@@ -1,0 +1,5 @@
+import { PublicPage } from "@/components/public-site";
+import { getPublishedEvents } from "@/lib/public-content";
+export const metadata = { title: "Events | Little Gems Private School", description: "Public events from Little Gems Private School." };
+export const revalidate = 300;
+export default async function EventsPage() { const events = await getPublishedEvents(); return <PublicPage eyebrow="Events" title="Upcoming public events"><section className="mt-8 max-w-3xl space-y-4">{events.length ? events.map((event) => <article className="rounded-xl border bg-white p-6" key={event.id}><h2 className="text-xl font-bold">{event.title}</h2><p className="mt-1 text-sm text-slate-600">{new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.starts_at))} – {new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.ends_at))}</p>{event.summary && <p className="mt-3">{event.summary}</p>}</article>) : <p className="rounded border border-dashed p-5 text-slate-700">Published public events will appear here.</p>}</section></PublicPage>; }

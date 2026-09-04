@@ -1,0 +1,3 @@
+import { EditorPrompt, PublicPage } from "@/components/public-site";
+export const metadata = { title: "Admissions | Little Gems Private School", description: "Admissions information from Little Gems Private School." };
+export default function AdmissionsPage() { return <PublicPage eyebrow="Admissions" title="Join the Little Gems family"><div className="mt-8 max-w-3xl space-y-4"><p>We welcome families who want a loving, nurturing foundation for their children.</p><EditorPrompt>Current entry requirements, fees, dates, application process, and availability have not yet been approved for publication. Please contact the school directly for admissions guidance.</EditorPrompt></div></PublicPage>; }

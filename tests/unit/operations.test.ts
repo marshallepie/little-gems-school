@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assessmentSchema, assignmentSchema, attendanceSessionSchema, readAssessmentResults, readAttendanceStatuses, timetableEntrySchema } from "../../lib/validations/operations";
+import { assessmentSchema, assignmentReviewSchema, assignmentSchema, attendanceSessionSchema, readAssessmentResults, readAttendanceStatuses, timetableEntrySchema } from "../../lib/validations/operations";
 
 const id = "11111111-1111-4111-8111-111111111111";
 
@@ -23,6 +23,12 @@ describe("Phase 3 Batch 2 operation validation", () => {
     const valid = { teacher_assignment_id: id, term_id: id, title: "Reading", instructions: "Read chapter 1", assigned_on: "2026-09-01", due_on: "2026-09-03" };
     expect(assignmentSchema.safeParse(valid).success).toBe(true);
     expect(assignmentSchema.safeParse({ ...valid, due_on: "2026-08-31" }).success).toBe(false);
+  });
+
+  it("allows only approved administrator assignment review targets", () => {
+    expect(assignmentReviewSchema.safeParse({ assignment_id: id, target: "published" }).success).toBe(true);
+    expect(assignmentReviewSchema.safeParse({ assignment_id: id, target: "closed" }).success).toBe(true);
+    expect(assignmentReviewSchema.safeParse({ assignment_id: id, target: "draft" }).success).toBe(false);
   });
 
   it("requires a positive maximum assessment score", () => {

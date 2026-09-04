@@ -22,12 +22,12 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'b1000000-0000-0000-0000-000000000001', true);
 select public.provision_portal_account('c1000000-0000-0000-0000-000000000004', 'teacher', null);
+reset role;
 do $$ begin
   if not exists (select 1 from public.profiles where id = 'c1000000-0000-0000-0000-000000000004' and default_role_code = 'teacher' and is_active) then raise exception 'provision did not activate default role'; end if;
   if not exists (select 1 from public.user_roles ur join public.roles r on r.id = ur.role_id where ur.user_id = 'c1000000-0000-0000-0000-000000000004' and r.code = 'teacher') then raise exception 'provision did not create normalized role'; end if;
   if not exists (select 1 from public.authorization_events where actor_user_id = 'b1000000-0000-0000-0000-000000000001' and subject_user_id = 'c1000000-0000-0000-0000-000000000004' and event_type = 'account_created' and metadata = '{}'::jsonb) then raise exception 'account-created audit event missing or contains metadata'; end if;
 end $$;
-reset role;
 
 -- A second active proprietor is never a deprovision target either: owner succession
 -- is an operator-only workflow, so the same policy is safe for sole and multi-owner states.
@@ -72,6 +72,7 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'b1000000-0000-0000-0000-000000000001', true);
 select public.deprovision_portal_account('c1000000-0000-0000-0000-000000000004');
+reset role;
 do $$ begin
   if not exists (select 1 from public.profiles where id = 'c1000000-0000-0000-0000-000000000004' and not is_active and auth_ban_state = 'pending') then raise exception 'deprovision did not leave durable pending Auth-ban state'; end if;
   if exists (select 1 from public.user_roles where user_id = 'c1000000-0000-0000-0000-000000000004') then raise exception 'deprovision retained role'; end if;
@@ -79,6 +80,8 @@ do $$ begin
 end $$;
 -- Browser callers cannot forge saga state. The server-only capability requires the
 -- service role and receives the original proprietor identity as an audited argument.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'b1000000-0000-0000-0000-000000000001', true);
 do $$ begin
   begin
     perform public.record_account_auth_ban_state_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000001', 'failed');

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminPermission, requireRole } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { assessmentSchema, assignmentIdSchema, assignmentSchema, attendanceCorrectionSchema, attendanceSessionSchema, readAssessmentResults, readAttendanceStatuses, releaseAssessmentSchema, timetableEntrySchema } from "@/lib/validations/operations";
+import { assessmentSchema, assignmentIdSchema, assignmentReviewSchema, assignmentSchema, attendanceCorrectionSchema, attendanceSessionSchema, readAssessmentResults, readAttendanceStatuses, releaseAssessmentSchema, timetableEntrySchema } from "@/lib/validations/operations";
 import { formValues } from "@/lib/validations/school";
 
 function fail(path: string, message: string): never {
@@ -143,18 +143,33 @@ export async function saveTeacherAssignment(formData: FormData) {
   redirect("/teacher/assignments?notice=Draft+saved" as never);
 }
 
-export async function transitionTeacherAssignment(formData: FormData) {
-  const parsed = assignmentIdSchema.safeParse(formValues(formData));
-  const target = formData.get("target") === "closed" ? "closed" : formData.get("target") === "published" ? "published" : null;
-  if (!parsed.success || !target) fail("/teacher/assignments", "Invalid assignment transition");
-  const { supabase, userId } = await teacherClient();
-  const { data: current, error: currentError } = await supabase.from("assignments").select("id, teacher_assignment_id, status").eq("id", parsed.data.assignment_id).maybeSingle();
-  if (currentError || !current || current.status !== "draft" || !await ownTeacherAssignment(supabase, userId, current.teacher_assignment_id)) fail("/teacher/assignments", "Only your draft assignments can be changed");
+export async function reviewAssignment(formData: FormData) {
+  const parsed = assignmentReviewSchema.safeParse(formValues(formData));
+  if (!parsed.success) fail("/admin/operations/assignments", "Invalid assignment review action");
+  const supabase = await requireAdminPermission("assessments.review");
+  const { data: current, error: currentError } = await supabase
+    .from("assignments")
+    .select("id, status, published_at")
+    .eq("id", parsed.data.assignment_id)
+    .maybeSingle();
+  if (currentError || !current) fail("/admin/operations/assignments", "Assignment is unavailable");
+  if (parsed.data.target === "published" && current.status !== "draft") {
+    fail("/admin/operations/assignments", "Only draft assignments can be published");
+  }
+  if (parsed.data.target === "closed" && current.status !== "draft" && current.status !== "published") {
+    fail("/admin/operations/assignments", "Only draft or published assignments can be closed");
+  }
   const now = new Date().toISOString();
-  const { error } = await supabase.from("assignments").update({ status: target, published_at: now }).eq("id", current.id).eq("status", "draft");
-  if (error) fail("/teacher/assignments", error.message);
+  const { error } = await supabase.from("assignments")
+    .update({ status: parsed.data.target, published_at: current.published_at ?? now })
+    .eq("id", current.id)
+    .eq("status", current.status);
+  if (error) fail("/admin/operations/assignments", error.message);
+  revalidatePath("/admin/operations/assignments");
   revalidatePath("/teacher/assignments");
-  redirect(`/teacher/assignments?notice=Assignment+${target}` as never);
+  revalidatePath("/student/assignments");
+  revalidatePath("/parent/children/[studentId]/assignments", "page");
+  redirect(`/admin/operations/assignments?notice=Assignment+${parsed.data.target}` as never);
 }
 
 export async function saveTeacherAssessment(formData: FormData) {

@@ -83,16 +83,5 @@ returns boolean language sql stable security definer set search_path = '' as $$
     else false end;
 $$;
 
-create function app_private.can_access_document(target_document_id uuid)
-returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (
-    select 1 from public.documents d where d.id = target_document_id and (
-      app_private.has_admin_permission('documents.manage')
-      or (d.created_by = (select auth.uid()))
-      or (d.status = 'available' and exists (select 1 from public.document_targets dt where dt.document_id = d.id and app_private.matches_audience(dt.target_kind, dt.role_code, dt.class_group_id)))
-    )
-  );
-$$;
-
-revoke all on function app_private.is_active_teacher_assignment(uuid, uuid, uuid), app_private.is_active_teacher_for_class(uuid), app_private.is_enrolled_on(uuid, uuid, date), app_private.is_active_student_self(uuid), app_private.is_active_guardian_of(uuid), app_private.has_current_class_relationship(uuid), app_private.matches_audience(text, text, uuid), app_private.can_access_document(uuid) from public, anon;
-grant execute on function app_private.is_active_teacher_assignment(uuid, uuid, uuid), app_private.is_active_teacher_for_class(uuid), app_private.is_enrolled_on(uuid, uuid, date), app_private.is_active_student_self(uuid), app_private.is_active_guardian_of(uuid), app_private.has_current_class_relationship(uuid), app_private.matches_audience(text, text, uuid), app_private.can_access_document(uuid) to authenticated;
+revoke all on function app_private.is_active_teacher_assignment(uuid, uuid, uuid), app_private.is_active_teacher_for_class(uuid), app_private.is_enrolled_on(uuid, uuid, date), app_private.is_active_student_self(uuid), app_private.is_active_guardian_of(uuid), app_private.has_current_class_relationship(uuid), app_private.matches_audience(text, text, uuid) from public, anon;
+grant execute on function app_private.is_active_teacher_assignment(uuid, uuid, uuid), app_private.is_active_teacher_for_class(uuid), app_private.is_enrolled_on(uuid, uuid, date), app_private.is_active_student_self(uuid), app_private.is_active_guardian_of(uuid), app_private.has_current_class_relationship(uuid), app_private.matches_audience(text, text, uuid) to authenticated;

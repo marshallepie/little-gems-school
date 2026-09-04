@@ -112,6 +112,20 @@ Creating an enabling environment for discovery and development of TALENTS and La
 
 ---
 
+## Phase 4 Implementation Status (September 2026)
+
+- [x] Accessible responsive public navigation and pages implemented: Home, About, Academics, Admissions, News, Events, Contact, plus School Login entry.
+- [x] Approved hero quote, proprietress message, vision/mission, and awards reproduced as HTML copy.
+- [x] Plain-text CMS implemented for editor-managed pages, news posts, and separate public events; publishing is administrator-controlled.
+- [x] Public RLS excludes future-dated publications, and database triggers set `created_by` from `auth.uid()` and keep it immutable.
+- [x] Added `supabase/tests/phase4_public_cms_rls.sql` for future-publication visibility and `created_by` behavioral coverage.
+- [ ] **Database-validation gate:** execute that SQL test against the local Supabase database when the local Docker daemon is available; it was not executable in this environment.
+- [x] Academics, Admissions, and Contact use honest school-contact/editor-managed prompts until approved facts are supplied.
+- [ ] Supply and approve web-ready versions of Images #1, #2/#11, #4, #6–#10, #12, and #13. The repository currently contains only `public/images/little-gems-school-logo.jpg`; no event, building, ICT, or awards assets were available to implement.
+- [ ] Provide approved current admissions requirements, fees, dates, application process, and availability.
+- [ ] Provide approved academic programmes, curriculum, year groups, facilities, and timetable details.
+- [ ] Provide approved contact address, telephone, email, office hours, map, and public production URL (needed to add a canonical SEO metadata base URL).
+
 ## Notes & To-Dos
 
 - [x] Receive and assess all 13 images ✅

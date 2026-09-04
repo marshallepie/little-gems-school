@@ -61,6 +61,9 @@ export const assignmentSchema = z.object({
 });
 
 export const assignmentIdSchema = z.object({ assignment_id: uuid });
+export const assignmentReviewSchema = assignmentIdSchema.extend({
+  target: z.enum(["published", "closed"]),
+});
 
 export const assessmentSchema = z.object({
   teacher_assignment_id: uuid,

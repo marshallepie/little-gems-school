@@ -1,0 +1,3 @@
+import { EditorPrompt, PublicPage } from "@/components/public-site";
+export const metadata = { title: "Contact | Little Gems Private School", description: "Contact information for Little Gems Private School." };
+export default function ContactPage() { return <PublicPage eyebrow="Contact" title="Talk with the school"><div className="mt-8 max-w-3xl"><EditorPrompt>The school&apos;s approved address, telephone number, email address, office hours, and map have not yet been supplied. Please contact Little Gems Private School directly for current contact information.</EditorPrompt></div></PublicPage>; }

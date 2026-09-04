@@ -77,6 +77,16 @@ Only the active `proprietor_super_admin` position can use `/admin/accounts`. The
 
 The first-login completion guard is centralized in the authenticated server guards used by every portal route and sensitive server action. A user without `profile_completed_at` is therefore redirected to `/profile` even when directly opening `/admin`, `/admin/dashboard`, `/admin/accounts`, `/teacher`, `/parent`, `/student`, or `/dashboard`; `/profile` and auth/recovery routes remain outside the guard.
 
+## Phase 4: public website and CMS
+
+The public site now provides responsive, accessible Home, About, Academics, Admissions, News, Events, and Contact pages, with a persistent School Login entry and metadata/Open Graph defaults. Approved hero, proprietress, vision/mission, and achievement copy are rendered as HTML; Academics, Admissions, and Contact deliberately state that current details must be confirmed with the school rather than inventing them. Public news and events safely render empty states when Supabase public environment variables are absent.
+
+`/admin/cms` is server-protected by `requireAdminPermission('website.manage')`. Its Zod-validated server actions manage plain-text pages, news posts, and public events, then revalidate the affected public and admin routes. The append-only `20260902000000_phase4_public_cms.sql` adds separate CMS tables and RLS: anonymous/authenticated visitors can read only `published` records whose `published_at` is not in the future, while authenticated administrators with `website.manage` may write. Database triggers assign `created_by` from `auth.uid()` on insert and reject later changes. It intentionally does not change Phase 3's private `events` table or its `is_public = false` constraint.
+
+`supabase/tests/phase4_public_cms_rls.sql` is the added SQL behavioral test for past-versus-future public visibility and `created_by` assignment/immutability. **Remaining database-validation gate:** run it against the local Supabase database once the local Docker daemon is available; it has not been executed in this environment.
+
+**Content/asset blockers:** the repository only contains the school crest in `public/images`; the documented event, building, ICT, and award photos still need supplied/approved web assets. The school must approve current admissions requirements/fees/dates, academic programmes/curriculum/facilities details, and contact address/phone/email/hours before they are published. A real public production URL is also required before adding a canonical metadata base URL.
+
 ## Before any live authentication or data
 
 An approved Supabase project, credentials, privacy/legal and retention decisions, identity/invitation workflow, stakeholder workflow decisions, fuller RLS test coverage, and staging/backup procedures are still required. Do not add real pupils, staff, guardians, or production exports to local seed data.

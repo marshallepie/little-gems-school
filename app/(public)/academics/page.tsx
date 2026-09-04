@@ -1,0 +1,3 @@
+import { EditorPrompt, PublicPage } from "@/components/public-site";
+export const metadata = { title: "Academics | Little Gems Private School", description: "Academic information from Little Gems Private School." };
+export default function AcademicsPage() { return <PublicPage eyebrow="Academics" title="Learning information"><div className="mt-8 max-w-3xl space-y-4"><p>Little Gems Private School is committed to laying a solid academic foundation while supporting the discovery and development of talents.</p><EditorPrompt>Programme, subject, year-group, curriculum, timetable, and facilities details are editor-managed information. Please contact the school directly for current academic information.</EditorPrompt></div></PublicPage>; }

@@ -15,7 +15,8 @@ export type AdminPermission =
   | "results.release"
   | "communications.manage"
   | "calendar.manage"
-  | "documents.manage";
+  | "documents.manage"
+  | "website.manage";
 
 type AuthenticatedClient = Awaited<ReturnType<typeof createClient>>;
 

@@ -73,6 +73,19 @@ create table public.documents (
 create table public.document_targets (document_id uuid not null references public.documents(id) on delete cascade, target_kind text not null check (target_kind in ('school','role','class')), role_code text references public.roles(code) on delete restrict, class_group_id uuid references public.class_groups(id) on delete restrict, primary key(document_id,target_kind,role_code,class_group_id), check ((target_kind='school' and role_code is null and class_group_id is null) or (target_kind='role' and role_code is not null and class_group_id is null) or (target_kind='class' and role_code is null and class_group_id is not null)));
 create table public.assignment_documents (assignment_id uuid not null references public.assignments(id) on delete cascade, document_id uuid not null references public.documents(id) on delete restrict, primary key(assignment_id,document_id));
 
+create function app_private.can_access_document(target_document_id uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.documents d where d.id = target_document_id and (
+      app_private.has_admin_permission('documents.manage')
+      or (d.created_by = (select auth.uid()))
+      or (d.status = 'available' and exists (select 1 from public.document_targets dt where dt.document_id = d.id and app_private.matches_audience(dt.target_kind, dt.role_code, dt.class_group_id)))
+    )
+  );
+$$;
+revoke all on function app_private.can_access_document(uuid) from public, anon;
+grant execute on function app_private.can_access_document(uuid) to authenticated;
+
 create table public.operational_events (id uuid primary key default gen_random_uuid(), occurred_at timestamptz not null default now(), actor_user_id uuid references public.profiles(id) on delete set null, entity_type text not null check(entity_type in ('attendance_session','assessment','document','announcement','event')), entity_id uuid not null, event_type text not null, metadata jsonb not null default '{}'::jsonb check(jsonb_typeof(metadata)='object'));
 
 create function app_private.validate_phase3_record() returns trigger language plpgsql security definer set search_path = '' as $$
