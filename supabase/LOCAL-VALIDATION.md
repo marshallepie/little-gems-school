@@ -74,6 +74,22 @@ Phase 3 RLS suite has still never executed.
 
 The local stack binds all services to `0.0.0.0`, uses well-known default
 credentials, and leaves Studio / pgMeta unauthenticated. The host firewall is
-currently **inactive** (`ufw` inactive, iptables `INPUT ACCEPT`), so while the
-stack is up, ports 54321-54329 are reachable from the internet. Never leave it
-running; the script handles this by always stopping on exit.
+otherwise **inactive** (`ufw` inactive, iptables `INPUT ACCEPT`), so while the
+stack is up, ports 54321-54329 would be reachable from the internet. Never leave
+it running; the script handles this by always stopping on exit.
+
+Targeted DROP rules for those ports were added to the host on 2026-09-04. They
+are **not persistent**, so re-add them after a reboot before validating:
+
+```sh
+iptables  -t raw -I PREROUTING 1 -i eth0 -p tcp --dport 54321:54329 -j DROP
+ip6tables -t raw -I PREROUTING 1 -i eth0 -p tcp --dport 54321:54329 -j DROP
+```
+
+They must go in the `raw` table, before DNAT. A rule in `INPUT` does nothing
+here: Docker-published ports are DNAT'd in `PREROUTING` and traverse `FORWARD`,
+so they never reach `INPUT`. Matching in `raw/PREROUTING` also runs before the
+port translation, so the original host port still matches. Loopback arrives on
+`lo` and container traffic on the bridges, so neither is affected. Check with
+`iptables -t raw -S PREROUTING | grep 5432`; swap `-I PREROUTING 1` for
+`-D PREROUTING` to remove.
