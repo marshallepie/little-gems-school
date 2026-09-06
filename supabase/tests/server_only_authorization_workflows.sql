@@ -33,7 +33,7 @@ end $$;
 
 -- A proprietor-approved trusted backend can replace/revoke Tier 2/3 and retains
 -- the original proprietor identity in trigger-generated audit events.
-perform public.set_admin_position_from_server('b1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001', 'headmistress');
+select public.set_admin_position_from_server('b1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001', 'headmistress');
 do $$ begin
   if not exists (select 1 from public.admin_position_assignments where user_id = 'b1000000-0000-0000-0000-000000000002' and position_code = 'headmistress' and revoked_at is null) then raise exception 'trusted position replacement failed'; end if;
   if not exists (select 1 from public.authorization_events where actor_user_id = 'b1000000-0000-0000-0000-000000000001' and subject_user_id = 'b1000000-0000-0000-0000-000000000002' and event_type = 'position_assigned' and position_code = 'headmistress') then raise exception 'position assignment audit actor was not retained'; end if;
@@ -43,7 +43,7 @@ do $$ begin
   exception when insufficient_privilege then null;
   end;
 end $$;
-perform public.set_admin_position_from_server('b1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001', null);
+select public.set_admin_position_from_server('b1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001', null);
 do $$ begin
   if exists (select 1 from public.admin_position_assignments where user_id = 'b1000000-0000-0000-0000-000000000002' and revoked_at is null) then raise exception 'trusted position revoke failed'; end if;
 end $$;

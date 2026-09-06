@@ -206,6 +206,15 @@ The public site must be:
 
 Next.js server rendering/static generation should be used appropriately so public pages can be efficiently delivered through CDN infrastructure.
 
+### Public Admissions & Mobile Navigation — Approved MVP Scope
+
+- Every public page must present persistent, high-contrast **School Login** and **Register Now** calls to action. **Register Now** opens the public application workflow; it does not create a portal account or confirm enrolment.
+- The workflow must capture child details; parent/guardian contact details; requested class; supporting notes; and optional supporting documents. A submitted application must receive and display a unique application reference number.
+- Submission must publicly show bank-transfer/direct-deposit payment instructions with visibly non-final `CONFIGURE:` placeholders for the account name, bank, and account number. This temporary public placeholder copy is explicitly approved pending a future staff-configurable payment-settings capability; that settings workflow is out of scope and must not be built in this release. This release has **no online payment gateway**: showing transfer instructions is not payment confirmation.
+- Applications, supporting documents, and any payment-status decision must remain pending staff review. Only authorised staff may review them and decide whether to create/confirm an enrolment; an application submission, payment instructions, or a claimed transfer must never itself confirm enrolment.
+- Public application PII and uploaded documents must be private: they must not be publicly accessible, must use protected storage and server-side access controls/RLS, and must be available only to authorised staff for review.
+- At very small viewport widths, the public navigation must collapse into an accessible hamburger menu with keyboard-operable controls and visible focus states; the login form must remain responsive and usable without horizontal scrolling. Public pages must include breadcrumbs, except where a breadcrumb would be redundant on the home page.
+
 ---
 
 # 5. Simple Built-In CMS
