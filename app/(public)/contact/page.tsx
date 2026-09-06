@@ -1,3 +1,3 @@
-import { EditorPrompt, PublicPage } from "@/components/public-site";
+import { PublicPage } from "@/components/public-site";
 export const metadata = { title: "Contact | Little Gems Private School", description: "Contact information for Little Gems Private School." };
-export default function ContactPage() { return <PublicPage eyebrow="Contact" title="Talk with the school"><div className="mt-8 max-w-3xl"><EditorPrompt>The school&apos;s approved address, telephone number, email address, office hours, and map have not yet been supplied. Please contact Little Gems Private School directly for current contact information.</EditorPrompt></div></PublicPage>; }
+export default function ContactPage() { return <PublicPage eyebrow="Contact" title="Talk with the school"><section className="mt-8 max-w-3xl rounded-xl border border-violet-200 bg-violet-50 p-5 text-slate-800" aria-label="Contact information"><dl className="space-y-3"><div><dt className="font-bold">Telephone</dt><dd>2348023446992</dd></div><div><dt className="font-bold">Address</dt><dd>55 Oduduwa Street , Ikate, Surulere,  Lagos, Nigeria</dd></div></dl></section></PublicPage>; }
