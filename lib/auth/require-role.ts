@@ -16,7 +16,9 @@ export type AdminPermission =
   | "communications.manage"
   | "calendar.manage"
   | "documents.manage"
-  | "website.manage";
+  | "website.manage"
+  | "website_content.edit"
+  | "website_content.publish";
 
 type AuthenticatedClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -62,6 +64,13 @@ export async function requireRole(): Promise<RoleCode> {
 export async function requireAdminPermission(permission: AdminPermission) {
   const { supabase } = await requireAuthenticatedClient();
   const { data: allowed, error } = await supabase.rpc("has_admin_permission", { required_permission: permission });
+  if (error || allowed !== true) redirect("/unauthorized");
+  return supabase;
+}
+
+export async function requireWebsiteContentEditor() {
+  const { supabase } = await requireAuthenticatedClient();
+  const { data: allowed, error } = await supabase.rpc("has_website_content_edit_permission");
   if (error || allowed !== true) redirect("/unauthorized");
   return supabase;
 }

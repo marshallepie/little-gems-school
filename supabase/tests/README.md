@@ -72,28 +72,20 @@ PASS: administrative authorization cutover gate tests
 PASS: administrative authorization hierarchy behavioural tests
 ```
 
-**1. The migration chain cannot apply to a fresh database.**
-`20260901000000_phase3_operations_authorization.sql` creates
-`app_private.can_access_document`, a `language sql` function that selects from
-`public.documents` and `public.document_targets`. Both tables are first created
-by the *next* migration, `20260901010000_phase3_operations_schema.sql`. Postgres
-validates SQL function bodies at creation, so `migration up` aborts with
-`relation "public.documents" does not exist (SQLSTATE 42P01)`.
+**1. The Phase 3 migration-order blocker is resolved in the source chain.**
+`20260901000000_phase3_operations_authorization.sql` no longer creates
+`app_private.can_access_document`; the function is created only after
+`20260901010000_phase3_operations_schema.sql` creates `public.documents` and
+`public.document_targets`. The history records that these migrations have never
+applied anywhere, so the earlier correction was safe to make in place and does
+not violate the append-only rule. Static validation verifies the authorization
+migration has no references to either table and the following schema migration
+creates both. A disposable-stack run remains required to prove application.
 
-This is not only a test problem: it would break a deploy onto a clean database.
-Every other function in that migration references tables that already exist, so
-the fix is confined to `can_access_document` — create it after the tables exist.
-These migrations have never applied anywhere, so amending them in place does not
-violate the append-only rule.
-
-**2. `account_lifecycle_and_profiles.sql` cannot pass as written.**
-After `select public.provision_portal_account(...)` it verifies the result while
-still `set local role authenticated` as the proprietor. Its own migration,
-`20260831020000_account_lifecycle_and_profiles.sql`, defines `profiles_self_read`
-as `using (id = (select auth.uid()))` — self only. The proprietor therefore
-cannot see the provisioned user's row, and the block raises
-`provision did not activate default role` even though provisioning succeeded.
-The assertions need to run after `reset role`.
+**2. The account-lifecycle test restores the privileged role before its global assertions.**
+After `public.provision_portal_account(...)`, the script executes `reset role`
+before verifying the provisioned profile and normalized role. This avoids the
+self-only authenticated `profiles_self_read` policy masking the expected result.
 
 The gate fixture persists only in the disposable stack so the subsequent local
 cutover can exercise the same migration-history sequence as production. The first

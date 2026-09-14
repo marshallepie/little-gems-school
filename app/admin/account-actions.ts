@@ -7,7 +7,7 @@ import { requireProprietorSession } from "@/lib/auth/require-role";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { completePendingAuthBan } from "@/lib/account-lifecycle";
 
-const roleSchema = z.enum(["admin", "teacher", "parent", "student"]);
+const roleSchema = z.enum(["admin", "teacher", "parent", "student", "secretary"]);
 const positionSchema = z.enum(["senior_administrator", "headmistress"]);
 const createAccountSchema = z.object({
   email: z.string().trim().email().max(254),
@@ -19,6 +19,7 @@ const createAccountSchema = z.object({
 });
 const deprovisionSchema = z.object({ userId: z.string().uuid() });
 const positionChangeSchema = z.object({ userId: z.string().uuid(), position: z.union([positionSchema, z.literal("")]) });
+const websiteEditorSchema = z.object({ userId: z.string().uuid(), enabled: z.enum(["true", "false"]) });
 
 export type AccountActionState = { error?: string; temporaryPassword?: string; email?: string };
 const initialError = (message: string): AccountActionState => ({ error: message });
@@ -81,6 +82,17 @@ export async function retryPendingAuthBan(formData: FormData): Promise<void> {
   const parsed = deprovisionSchema.safeParse({ userId: formData.get("userId") });
   if (!parsed.success) throw new Error("Invalid account.");
   await completeAuthBan(parsed.data.userId);
+}
+
+export async function changeWebsiteContentEditor(formData: FormData): Promise<void> {
+  const parsed = websiteEditorSchema.safeParse({ userId: formData.get("userId"), enabled: formData.get("enabled") });
+  if (!parsed.success) throw new Error("Invalid website editor change.");
+  const proprietor = await requireProprietorSession();
+  const { error } = await createAdminClient().rpc("set_website_content_editor_from_server", {
+    target_user_id: parsed.data.userId, actor_user_id: proprietor.userId, enabled: parsed.data.enabled === "true",
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/accounts");
 }
 
 /** Assign, replace, or revoke only Tier 2/3 positions through the service-only RPC. */
