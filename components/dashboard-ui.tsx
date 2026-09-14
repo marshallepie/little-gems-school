@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { PortalAccountControls } from "@/components/portal-account-controls";
 
 export function PortalHeader({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
-  return <header className="space-y-2"><p className="font-semibold text-[color:var(--gem)]">Little Gems School · {eyebrow}</p><h1 className="text-3xl font-bold tracking-tight">{title}</h1><div className="max-w-3xl text-slate-700">{children}</div></header>;
+  return <header className="space-y-3"><div className="flex flex-wrap items-start justify-between gap-3"><div className="space-y-2"><p className="font-semibold text-[color:var(--gem)]">Little Gems School · {eyebrow}</p><h1 className="text-3xl font-bold tracking-tight">{title}</h1></div><PortalAccountControls /></div><div className="max-w-3xl text-slate-700">{children}</div></header>;
 }
 
 export function DashboardCard({ title, children }: { title: string; children: ReactNode }) {

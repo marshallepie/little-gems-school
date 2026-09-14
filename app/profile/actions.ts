@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { requireActiveProfileSession } from "../../lib/auth/require-role";
 
 const optionalText = (maximum: number) => z.string().trim().max(maximum).transform((value) => value || null);
 const profileSchema = z.object({
@@ -20,10 +20,8 @@ export async function updateMyProfile(formData: FormData) {
   });
   if (!parsed.success) redirect(`/profile?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Invalid profile.")}` as never);
 
-  const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  if (!claims?.claims.sub) redirect("/login");
-  const { error } = await supabase.from("profiles").update({ ...parsed.data, profile_completed_at: new Date().toISOString() }).eq("id", claims.claims.sub);
+  const { supabase, userId } = await requireActiveProfileSession();
+  const { error } = await supabase.from("profiles").update({ ...parsed.data, profile_completed_at: new Date().toISOString() }).eq("id", userId);
   if (error) redirect(`/profile?error=${encodeURIComponent(error.message)}` as never);
   revalidatePath("/profile");
   redirect("/dashboard");

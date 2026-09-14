@@ -1,4 +1,5 @@
 import { AccountManager } from "@/components/account-manager";
+import { PortalAccountControls } from "@/components/portal-account-controls";
 import { requireProprietor } from "@/lib/auth/require-role";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -36,5 +37,5 @@ export default async function AccountLifecyclePage() {
     role: event.role_code,
   }));
 
-  return <main className="mx-auto max-w-6xl space-y-6"><header><p className="font-semibold text-violet-700">Little Gems School</p><h1 className="text-3xl font-bold">Account lifecycle and authorization</h1><p className="mt-2 max-w-3xl text-slate-700">Proprietor-only account provisioning, Tier 2/3 position management, and authorization audit review.</p></header><AccountManager accounts={accounts} events={events} /></main>;
+  return <main className="mx-auto max-w-6xl space-y-6"><header className="space-y-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold text-violet-700">Little Gems School</p><h1 className="text-3xl font-bold">Account lifecycle and authorization</h1></div><PortalAccountControls /></div><p className="max-w-3xl text-slate-700">Proprietor-only account provisioning, Tier 2/3 position management, and authorization audit review.</p></header><AccountManager accounts={accounts} events={events} /></main>;
 }

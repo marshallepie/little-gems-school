@@ -59,6 +59,11 @@ do $$ begin
   exception when check_violation then null;
   end;
   begin
+    update public.profiles set default_role_code = 'admin' where id = 'c1000000-0000-0000-0000-000000000004';
+    raise exception 'self profile changed role';
+  exception when insufficient_privilege then null;
+  end;
+  begin
     update public.profiles set is_active = true where id = 'c1000000-0000-0000-0000-000000000004';
     raise exception 'self profile changed active state';
   exception when insufficient_privilege then null;
@@ -78,6 +83,21 @@ do $$ begin
   if exists (select 1 from public.user_roles where user_id = 'c1000000-0000-0000-0000-000000000004') then raise exception 'deprovision retained role'; end if;
   if not exists (select 1 from public.authorization_events where actor_user_id = 'b1000000-0000-0000-0000-000000000001' and subject_user_id = 'c1000000-0000-0000-0000-000000000004' and event_type = 'account_deprovisioned') then raise exception 'deprovision audit event missing'; end if;
 end $$;
+
+-- Even with a still-valid JWT, a deprovisioned identity cannot update the
+-- allowlisted contact fields directly through PostgREST/RLS.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'c1000000-0000-0000-0000-000000000004', true);
+do $$ begin
+  update public.profiles
+    set phone = '+234****9999'
+    where id = 'c1000000-0000-0000-0000-000000000004';
+  if found then
+    raise exception 'deprovisioned account updated self contact data';
+  end if;
+end $$;
+reset role;
+
 -- Browser callers cannot forge saga state. The server-only capability requires the
 -- service role and receives the original proprietor identity as an audited argument.
 set local role authenticated;

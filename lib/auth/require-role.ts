@@ -34,12 +34,24 @@ async function requireCompletedProfile(supabase: AuthenticatedClient, userId: st
   if (!profile.profile_completed_at) redirect("/profile");
 }
 
-async function requireAuthenticatedClient() {
+/** Token validation plus a fail-closed active-account check for server actions. */
+export async function requireActiveProfileSession() {
   const supabase = await createClient();
   // getClaims() validates the token; getSession() is intentionally not used to authorize.
   const { data: claimResult } = await supabase.auth.getClaims();
   const userId = claimResult?.claims.sub;
   if (!userId) redirect("/login");
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("is_active")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !profile?.is_active) redirect("/login");
+  return { supabase, userId };
+}
+
+async function requireAuthenticatedClient() {
+  const { supabase, userId } = await requireActiveProfileSession();
   await requireCompletedProfile(supabase, userId);
   return { supabase, userId };
 }
