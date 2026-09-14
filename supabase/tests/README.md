@@ -94,10 +94,10 @@ seed nor bootstrap capability; the forward administrative-authorization migratio
 then supplies the roles before the bootstrap test can succeed. The hierarchy test
 rolls back its additional unpositioned-admin fixture. Never run these fixtures
 against a shared or remote project. The account lifecycle script also proves a
-direct authenticated profile update cannot bypass the exact
-`https://` avatar constraint, an active second `proprietor_super_admin` cannot
-be deprovisioned, and a failed Auth-ban state remains database-deprovisioned
-until a proprietor records a successful retry.
+direct authenticated profile update cannot alter the retired external avatar URL
+(avatars are server-mediated through `avatar_path`), an active second
+`proprietor_super_admin` cannot be deprovisioned, and a failed Auth-ban state
+remains database-deprovisioned until a proprietor records a successful retry.
 
 `scripts/db-behavioural-validate.sh` is the executable form of the sequence
 above; prefer it over running the steps by hand.

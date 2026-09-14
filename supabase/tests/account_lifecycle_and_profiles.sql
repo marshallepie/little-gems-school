@@ -48,15 +48,16 @@ update public.admin_position_assignments
   set position_code = 'senior_administrator'
   where user_id = 'b1000000-0000-0000-0000-000000000002' and revoked_at is null;
 
--- A user may update the selected basic fields, but column privileges prevent role or active-state escalation.
+-- An active user may update only the selected contact/completion fields. Avatar
+-- uploads are server-mediated, so the retired external avatar URL is not writable.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'c1000000-0000-0000-0000-000000000004', true);
-update public.profiles set display_name = 'Lifecycle User', phone = '+2340000000', address = 'Test address', avatar_url = 'https://example.test/avatar.png', profile_completed_at = now() where id = 'c1000000-0000-0000-0000-000000000004';
+update public.profiles set display_name = 'Lifecycle User', phone = '+2340000000', address = 'Test address', profile_completed_at = now() where id = 'c1000000-0000-0000-0000-000000000004';
 do $$ begin
   begin
-    update public.profiles set avatar_url = 'http://example.test/avatar.png' where id = 'c1000000-0000-0000-0000-000000000004';
-    raise exception 'self profile bypassed HTTPS avatar policy';
-  exception when check_violation then null;
+    update public.profiles set avatar_url = 'https://example.test/avatar.png' where id = 'c1000000-0000-0000-0000-000000000004';
+    raise exception 'self profile changed the retired external avatar URL';
+  exception when insufficient_privilege then null;
   end;
   begin
     update public.profiles set default_role_code = 'admin' where id = 'c1000000-0000-0000-0000-000000000004';

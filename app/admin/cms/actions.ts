@@ -3,10 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdminPermission, requireWebsiteContentEditor } from "@/lib/auth/require-role";
+import { imagePath, validateImageUpload } from "@/lib/image-upload";
+import { cleanupStorageObject } from "@/lib/storage-cleanup";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { cmsDeleteSchema, cmsEventSchema, cmsNewsSchema, cmsPageSchema } from "@/lib/validations/cms";
 import { formValues } from "@/lib/validations/school";
 
 type CmsTable = "cms_pages" | "cms_news_posts" | "public_events";
+type CmsKind = "page" | "news" | "event";
 const tableFor = { page: "cms_pages", news: "cms_news_posts", event: "public_events" } as const;
 function fail(message: string): never { redirect(`/admin/cms?error=${encodeURIComponent(message)}` as never); }
 function paths() { ["/", "/about", "/academics", "/admissions", "/news", "/events", "/contact", "/admin/cms"].forEach((path) => revalidatePath(path)); }
@@ -16,26 +20,51 @@ async function saveDraft(table: CmsTable, parsed: { id?: string } & Record<strin
   const { id, ...raw } = parsed;
   const content = { ...raw, status: "draft", published_at: null, published_by: null };
   const result = id
-    ? await supabase.from(table).update(content).eq("id", id).eq("status", "draft").select("id").maybeSingle()
-    : await supabase.from(table).insert(content);
-  if (result.error || (id && !result.data)) fail(result.error?.message ?? "Only your draft content can be edited.");
+    ? await supabase.from(table).update(content).eq("id", id).eq("status", "draft").select("id,image_path").maybeSingle()
+    : await supabase.from(table).insert(content).select("id,image_path").maybeSingle();
+  if (result.error || !result.data) fail(result.error?.message ?? "Only your draft content can be edited.");
+  return { supabase, item: result.data as { id: string; image_path: string | null } };
 }
 
-export async function saveCmsPage(formData: FormData) {
-  const parsed = cmsPageSchema.safeParse(formValues(formData));
-  if (!parsed.success) fail(parsed.error.issues[0]?.message ?? "Invalid page");
-  await saveDraft("cms_pages", parsed.data); paths(); redirect("/admin/cms?notice=Page+draft+saved" as never);
+async function syncDraftImage(table: CmsTable, kind: CmsKind, formData: FormData, item: { id: string; image_path: string | null }, supabase: Awaited<ReturnType<typeof requireWebsiteContentEditor>>) {
+  const image = await validateImageUpload(formData.get("image"));
+  const removeImage = formData.get("remove_image") === "on";
+  if (!image && !removeImage) return;
+  if (image && removeImage) fail("Choose either a replacement image or remove the current image.");
+  const admin = createAdminClient();
+  if (!image) {
+    const { error } = await supabase.from(table).update({ image_path: null }).eq("id", item.id).eq("status", "draft");
+    if (error) fail(error.message);
+    if (item.image_path) await cleanupStorageObject(admin.storage.from("cms-images"), "cms-images", item.image_path, "remove");
+    return;
+  }
+  const path = imagePath("content", item.id, image.type as "image/jpeg" | "image/png" | "image/webp", kind);
+  const { error: uploadError } = await admin.storage.from("cms-images").upload(path, image, { contentType: image.type, upsert: false });
+  if (uploadError) fail("Image upload failed. Please try again.");
+  const { error: updateError } = await supabase.from(table).update({ image_path: path }).eq("id", item.id).eq("status", "draft");
+  if (updateError) {
+    await cleanupStorageObject(admin.storage.from("cms-images"), "cms-images", path, "rollback");
+    fail(updateError.message);
+  }
+  if (item.image_path) await cleanupStorageObject(admin.storage.from("cms-images"), "cms-images", item.image_path, "replace");
 }
-export async function saveCmsNews(formData: FormData) {
-  const parsed = cmsNewsSchema.safeParse(formValues(formData));
-  if (!parsed.success) fail(parsed.error.issues[0]?.message ?? "Invalid news post");
-  await saveDraft("cms_news_posts", parsed.data); paths(); redirect("/admin/cms?notice=News+draft+saved" as never);
+
+async function saveWithImage(kind: CmsKind, formData: FormData) {
+  const schema = kind === "page" ? cmsPageSchema : kind === "news" ? cmsNewsSchema : cmsEventSchema;
+  const parsed = schema.safeParse(formValues(formData));
+  if (!parsed.success) fail(parsed.error.issues[0]?.message ?? "Invalid content");
+  try {
+    const { supabase, item } = await saveDraft(tableFor[kind], parsed.data);
+    await syncDraftImage(tableFor[kind], kind, formData, item, supabase);
+  } catch (error) {
+    if (error instanceof Error) fail(error.message);
+    throw error;
+  }
 }
-export async function saveCmsEvent(formData: FormData) {
-  const parsed = cmsEventSchema.safeParse(formValues(formData));
-  if (!parsed.success) fail(parsed.error.issues[0]?.message ?? "Invalid public event");
-  await saveDraft("public_events", parsed.data); paths(); redirect("/admin/cms?notice=Event+draft+saved" as never);
-}
+
+export async function saveCmsPage(formData: FormData) { await saveWithImage("page", formData); paths(); redirect("/admin/cms?notice=Page+draft+saved" as never); }
+export async function saveCmsNews(formData: FormData) { await saveWithImage("news", formData); paths(); redirect("/admin/cms?notice=News+draft+saved" as never); }
+export async function saveCmsEvent(formData: FormData) { await saveWithImage("event", formData); paths(); redirect("/admin/cms?notice=Event+draft+saved" as never); }
 
 /** Clone the active public version into a private replacement draft at the same URL. */
 export async function createCmsReplacementDraft(formData: FormData) {
@@ -66,7 +95,10 @@ export async function deleteCmsItem(formData: FormData) {
   if (!parsed.success) fail("Invalid CMS record");
   const supabase = await requireWebsiteContentEditor();
   const table = tableFor[parsed.data.kind];
+  const { data: item, error: readError } = await supabase.from(table).select("image_path").eq("id", parsed.data.id).eq("status", "draft").maybeSingle();
+  if (readError || !item) fail("Only your own draft can be deleted.");
   const { error, count } = await supabase.from(table).delete({ count: "exact" }).eq("id", parsed.data.id).eq("status", "draft");
   if (error || count !== 1) fail(error?.message ?? "Only your own draft can be deleted.");
+  if (item.image_path) await cleanupStorageObject(createAdminClient().storage.from("cms-images"), "cms-images", item.image_path, "remove");
   paths(); redirect("/admin/cms?notice=Draft+deleted" as never);
 }

@@ -82,6 +82,7 @@ q server_only_authorization_workflows.sql
 q phase3_operations_rls.sql
 q public_admissions_rls.sql
 q secretary_cms_workflow_rls.sql
+q secure_image_uploads_rls.sql
 
 echo
 echo "OK: all behavioural database tests completed."
