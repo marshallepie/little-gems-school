@@ -29,7 +29,7 @@ export function PortalAccountControls() {
   }
 
   return <nav className="flex flex-wrap items-center gap-2" aria-label="Account actions">
-    <Link className="min-h-11 rounded border-2 border-slate-700 bg-white px-3 py-2 font-semibold text-slate-950 no-underline hover:bg-slate-100" href="/profile">Edit my profile</Link>
+    <Link className="min-h-11 rounded border-2 border-slate-700 bg-white px-3 py-2 font-semibold text-slate-950 no-underline hover:bg-slate-100" href="/profile" prefetch={false}>Edit my profile</Link>
     <button className="min-h-11 rounded border-2 border-slate-700 bg-white px-3 py-2 font-semibold text-slate-950 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60" disabled={isSigningOut} onClick={signOut} type="button">{isSigningOut ? "Signing out…" : "Sign out"}</button>
     {error && <p className="basis-full text-sm font-semibold text-red-800" role="alert">{error}</p>}
   </nav>;
