@@ -21,7 +21,7 @@ export default async function AdminDashboardPage() {
   ]);
 
   return <main className="mx-auto max-w-6xl space-y-6">
-    <PortalHeader eyebrow="Administrator dashboard" title="School at a glance">
+    <PortalHeader role="admin" eyebrow="Administrator dashboard" title="School at a glance">
       <p>Review the current structure and move into the protected management workspace when you need to maintain approved school records.</p>
     </PortalHeader>
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="School summary">

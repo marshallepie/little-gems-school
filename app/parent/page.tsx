@@ -10,7 +10,7 @@ type ChildLink = { student_id: string; relationship: string; is_primary_contact:
 type Enrolment = { student_id: string; class_groups: { name: string; level: string; academic_years: { name: string; is_current: boolean } | { name: string; is_current: boolean }[] | null } | { name: string; level: string; academic_years: { name: string; is_current: boolean } | { name: string; is_current: boolean }[] | null }[] | null };
 
 function UnavailableParentDashboard() {
-  return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader eyebrow="Parent and guardian dashboard" title="Your children at Little Gems"><p>Your school information could not be loaded right now.</p></PortalHeader><UnavailableDashboardState /></main>;
+  return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader role="parent" eyebrow="Parent and guardian dashboard" title="Your children at Little Gems"><p>Your school information could not be loaded right now.</p></PortalHeader><UnavailableDashboardState /></main>;
 }
 
 export default async function ParentPage() {
@@ -23,7 +23,7 @@ export default async function ParentPage() {
 
   const { data: guardian, error: guardianError } = await supabase.from("guardians").select("id, first_name, last_name").eq("profile_id", userId).maybeSingle();
   if (guardianError) return <UnavailableParentDashboard />;
-  if (!guardian) return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader eyebrow="Parent and guardian dashboard" title="Your children at Little Gems"><p>Your guardian record is not linked to this account yet.</p></PortalHeader><EmptyDashboardState title="No guardian record linked">Ask an administrator to link your school guardian record before child information can appear here.</EmptyDashboardState></main>;
+  if (!guardian) return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader role="parent" eyebrow="Parent and guardian dashboard" title="Your children at Little Gems"><p>Your guardian record is not linked to this account yet.</p></PortalHeader><EmptyDashboardState title="No guardian record linked">Ask an administrator to link your school guardian record before child information can appear here.</EmptyDashboardState></main>;
 
   const { data: childLinksData, error: childLinksError } = await supabase.from("student_guardians").select("student_id, relationship, is_primary_contact, students(admission_number, first_name, last_name, status)").eq("guardian_id", guardian.id);
   if (childLinksError) return <UnavailableParentDashboard />;
@@ -35,7 +35,7 @@ export default async function ParentPage() {
   for (const enrolment of (enrolmentData ?? []) as unknown as Enrolment[]) contextsByStudent.set(enrolment.student_id, [...(contextsByStudent.get(enrolment.student_id) ?? []), enrolment]);
 
   return <main className="mx-auto max-w-6xl space-y-6">
-    <PortalHeader eyebrow="Parent and guardian dashboard" title={`Hello, ${fullName(guardian.first_name, guardian.last_name)}`}><p>Only children linked to your guardian record are shown below.</p></PortalHeader>
+    <PortalHeader role="parent" eyebrow="Parent and guardian dashboard" title={`Hello, ${fullName(guardian.first_name, guardian.last_name)}`}><p>Only children linked to your guardian record are shown below.</p></PortalHeader>
     {childLinks.length === 0 ? <EmptyDashboardState title="No linked children">There are no student records linked to your guardian record yet.</EmptyDashboardState> : <section className="grid gap-4 sm:grid-cols-2" aria-label="Your children">{childLinks.map((link) => {
       const child = firstRelated(link.students);
       const contexts = (contextsByStudent.get(link.student_id) ?? []).filter((enrolment) => firstRelated(firstRelated(enrolment.class_groups)?.academic_years)?.is_current === true);

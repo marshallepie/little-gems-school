@@ -61,21 +61,21 @@ export default async function TeacherAssignmentsPage({ searchParams }: { searchP
   const [{ data: claims }, params] = await Promise.all([supabase.auth.getClaims(), searchParams]);
   if (!claims?.claims.sub) redirect("/login");
   const { data: teacher, error: teacherError } = await supabase.from("teachers").select("id, employment_status").eq("profile_id", claims.claims.sub).maybeSingle();
-  if (teacherError) return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader eyebrow="Teacher" title="Assignments"><p>Assignments could not be loaded.</p></PortalHeader><UnavailableDashboardState /></main>;
-  if (!teacher || teacher.employment_status !== "active") return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader eyebrow="Teacher" title="Assignments"><p>Your teacher record is not active.</p></PortalHeader><EmptyDashboardState title="No active teacher record">Ask an administrator to link and activate your teacher record.</EmptyDashboardState></main>;
+  if (teacherError) return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader role="teacher" eyebrow="Teacher" title="Assignments"><p>Assignments could not be loaded.</p></PortalHeader><UnavailableDashboardState /></main>;
+  if (!teacher || teacher.employment_status !== "active") return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader role="teacher" eyebrow="Teacher" title="Assignments"><p>Your teacher record is not active.</p></PortalHeader><EmptyDashboardState title="No active teacher record">Ask an administrator to link and activate your teacher record.</EmptyDashboardState></main>;
 
   const [{ data: teaching, error: teachingError }, { data: assignments, error: assignmentsError }, { data: terms, error: termsError }] = await Promise.all([
     supabase.from("teacher_assignments").select("id, term_id, class_groups(name, level), subjects(code, name)").eq("teacher_id", teacher.id).order("created_at"),
     supabase.from("assignments").select("id, teacher_assignment_id, term_id, title, instructions, assigned_on, due_on, status").order("assigned_on", { ascending: false }),
     supabase.from("terms").select("id, name").order("starts_on"),
   ]);
-  if (teachingError || assignmentsError || termsError) return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader eyebrow="Teacher" title="Assignments"><p>Assignments could not be loaded.</p></PortalHeader><UnavailableDashboardState /></main>;
+  if (teachingError || assignmentsError || termsError) return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader role="teacher" eyebrow="Teacher" title="Assignments"><p>Assignments could not be loaded.</p></PortalHeader><UnavailableDashboardState /></main>;
   const teachingRows = (teaching ?? []) as TeachingAssignment[];
   const termRows = (terms ?? []) as Term[];
   const assignmentRows = (assignments ?? []) as Assignment[];
 
   return <main className="mx-auto max-w-6xl space-y-6">
-    <PortalHeader eyebrow="Teacher" title="Assignments"><p>Create and edit only your own drafts. An administrator with <code>assessments.review</code> reviews, publishes, or closes assignments.</p></PortalHeader>
+    <PortalHeader role="teacher" eyebrow="Teacher" title="Assignments"><p>Create and edit only your own drafts. An administrator with <code>assessments.review</code> reviews, publishes, or closes assignments.</p></PortalHeader>
     {params.notice && <p role="status" className="rounded border border-green-300 bg-green-50 p-3">{params.notice.replaceAll("+", " ")}</p>}
     {params.error && <p role="alert" className="rounded border border-red-300 bg-red-50 p-3">{params.error}</p>}
     <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">

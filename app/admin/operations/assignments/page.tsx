@@ -11,9 +11,9 @@ export default async function AssignmentOperationsPage({ searchParams }: { searc
     supabase.from("assignments").select("id, title, instructions, assigned_on, due_on, status, teacher_assignments(class_groups(name, level), subjects(code, name))").order("assigned_on", { ascending: false }).limit(100),
     searchParams,
   ]);
-  if (error) return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader eyebrow="Operations" title="Assignment review"><p>The assignment review queue could not be loaded.</p></PortalHeader><UnavailableDashboardState /></main>;
+  if (error) return <main className="mx-auto max-w-6xl space-y-6"><PortalHeader role="admin" eyebrow="Operations" title="Assignment review"><p>The assignment review queue could not be loaded.</p></PortalHeader><UnavailableDashboardState /></main>;
   return <main className="mx-auto max-w-6xl space-y-6">
-    <PortalHeader eyebrow="Administrator operations" title="Assignment review"><p>Review teacher drafts. Publishing and closing require <code>assessments.review</code> and use your normal authenticated session.</p></PortalHeader>
+    <PortalHeader role="admin" eyebrow="Administrator operations" title="Assignment review"><p>Review teacher drafts. Publishing and closing require <code>assessments.review</code> and use your normal authenticated session.</p></PortalHeader>
     {params.notice && <p role="status" className="rounded border border-green-300 bg-green-50 p-3">{params.notice.replaceAll("+", " ")}</p>}
     {params.error && <p role="alert" className="rounded border border-red-300 bg-red-50 p-3">{params.error}</p>}
     {assignments?.length ? <div className="space-y-4">{assignments.map((assignment) => {
