@@ -126,6 +126,14 @@ Creating an enabling environment for discovery and development of TALENTS and La
 - [ ] Provide approved academic programmes, curriculum, year groups, facilities, and timetable details.
 - [ ] Provide approved contact address, telephone, email, office hours, map, and public production URL (needed to add a canonical SEO metadata base URL).
 
+## Internal portal communications/calendar status (September 2026)
+
+- [x] Private portal announcements and calendar feeds implemented for teacher, parent/guardian, and student roles; they are RLS-backed, read-only, and do not expose public website events.
+- [x] Separate permission-protected admin queues use one cookie-session database command RPC per announcement/event mutation. The database enforces nonempty normalized audiences, current classes, atomic target replacement, immutable creator provenance, lifecycle transitions, publication-with-audience, and append-only actor-attributed audit events.
+- [x] Announcements are draft → published → archived (terminal); events are draft → published → cancelled (terminal). The UI only offers legal next actions. Calendar `datetime-local` fields are explicitly interpreted as UTC and reject impossible/out-of-order values.
+- [x] UI-only updates affordance is explicitly non-authoritative: no unread count, delivery claim, or durable read tracking exists.
+- [ ] **Database-validation gate:** run `scripts/db-behavioural-validate.sh` on the disposable host-side Supabase stack. It now invokes self-contained `supabase/tests/phase3_communications_calendar_rls.sql`; Docker/Supabase was unavailable in this environment, so this coverage has not been executed here.
+
 ## Notes & To-Dos
 
 - [x] Receive and assess all 13 images ✅

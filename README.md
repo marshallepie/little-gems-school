@@ -57,7 +57,15 @@ These server-rendered, mobile-first routes use the approved Phase 3 schema/RLS f
 
 The approved assignments teacher policy permits teachers to create and edit their own drafts. Its `WITH CHECK status = 'draft'` also prevents a teacher session from transitioning a draft to `published` or `closed`. The assignment screen makes a normal cookie-bound request and surfaces that database denial; it does not bypass the policy with a service role. Enabling teacher publication/archival requires an approved database policy or narrowly scoped security-definer workflow outside this batch.
 
-Room data is not collected because `timetable_entries` has no room column in the approved schema. Announcements, events, documents, payments, messaging, and production Supabase remain outside these batches.
+Room data is not collected because `timetable_entries` has no room column in the approved schema.
+
+## Internal communications and private calendar slice
+
+`/admin/communications` and `/admin/calendar` use the normal cookie-bound authenticated session, then make one narrow database command RPC per mutation. The RPC verifies the active manager permission, normalizes and validates a nonempty whole-school/role/current-class target set, replaces targets atomically with draft edits/publication, sets immutable creator provenance from `auth.uid()`, and emits append-only structured `operational_events`. Direct authenticated writes to records, targets, and audit rows have no RLS write policy. Announcements are created as drafts, drafts may be edited/published, published records may only be archived, and archived records are terminal. Events follow the same draft/edit/publish lifecycle, with published records cancellable and cancelled records terminal. A publication cannot occur without a valid audience.
+
+`/teacher`, `/parent`, and `/student` navigation links to read-only `/communications` and `/calendar` feeds. Parent pages first prove a guardian relationship; every feed still uses audience RLS. The calendar UI truthfully labels `datetime-local` values as UTC; server validation rejects malformed/impossible dates and end times that are not after start. The “Updates indicator” is non-authoritative: it has no unread count, delivery claim, or durable read state. This scope excludes delivery channels, realtime, rich text, public-event integration, and the separate security-hardening work.
+
+Application timestamp/audience validation is covered by `lib/validations/communications.test.ts`. `supabase/tests/phase3_communications_calendar_rls.sql` is a self-contained, single-transaction behavioural test and is invoked by `scripts/db-behavioural-validate.sh`; it has not been run in this environment because Docker/Supabase is unavailable.
 
 ## Administrative authorization hierarchy
 

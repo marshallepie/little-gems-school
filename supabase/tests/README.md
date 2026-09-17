@@ -46,6 +46,7 @@ $PSQL < supabase/tests/administrative_authorization.sql
 $PSQL < supabase/tests/account_lifecycle_and_profiles.sql
 $PSQL < supabase/tests/server_only_authorization_workflows.sql
 $PSQL < supabase/tests/phase3_operations_rls.sql
+$PSQL < supabase/tests/phase3_communications_calendar_rls.sql
 $SUPABASE stop
 ```
 

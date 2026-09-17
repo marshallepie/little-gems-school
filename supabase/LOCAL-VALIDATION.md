@@ -23,7 +23,8 @@ That is the executable form of the sequence in `supabase/tests/README.md`. It
 is idempotent, always stops the stack again on exit, and restores `hermes`
 (uid 10000) ownership of `supabase/`. It applies the migration chain, seeds the
 authorization cutover fixture, and runs every behavioural RLS suite including
-`phase3_operations_rls.sql`.
+`phase3_operations_rls.sql` and the self-contained
+`phase3_communications_calendar_rls.sql` command/lifecycle suite.
 
 ### Do not use `lgs-db-validate` for migration validation
 

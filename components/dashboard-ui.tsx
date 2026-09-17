@@ -4,19 +4,20 @@ import type { ReactNode } from "react";
 import { PortalAccountControls } from "@/components/portal-account-controls";
 
 export type PortalRole = "admin" | "teacher" | "parent" | "student" | "profile";
+const route = (href: string) => href as Route;
 
 type PortalConfig = { role: PortalRole; label: string; homeHref: Route; links: { href: Route; label: string }[] };
 
 function portalConfig(role: PortalRole): PortalConfig {
   switch (role) {
     case "admin":
-      return { role, label: "Administrator", homeHref: "/admin/dashboard", links: [{ href: "/admin/dashboard", label: "Dashboard" }, { href: "/admin", label: "School records" }, { href: "/admin/operations/attendance", label: "Operations" }] };
+      return { role, label: "Administrator", homeHref: "/admin/dashboard", links: [{ href: "/admin/dashboard", label: "Dashboard" }, { href: "/admin", label: "School records" }, { href: "/admin/operations/attendance", label: "Operations" }, { href: route("/admin/communications"), label: "Announcements" }, { href: route("/admin/calendar"), label: "Calendar" }] };
     case "teacher":
-      return { role, label: "Teacher", homeHref: "/teacher", links: [{ href: "/teacher", label: "Dashboard" }, { href: "/teacher/assignments", label: "Assignments" }, { href: "/teacher/attendance", label: "Attendance" }] };
+      return { role, label: "Teacher", homeHref: "/teacher", links: [{ href: "/teacher", label: "Dashboard" }, { href: "/teacher/assignments", label: "Assignments" }, { href: "/teacher/attendance", label: "Attendance" }, { href: route("/teacher/communications"), label: "Announcements" }, { href: route("/teacher/calendar"), label: "Calendar" }] };
     case "parent":
-      return { role, label: "Parent", homeHref: "/parent", links: [{ href: "/parent", label: "Home" }, { href: "/profile", label: "Profile" }] };
+      return { role, label: "Parent", homeHref: "/parent", links: [{ href: "/parent", label: "Home" }, { href: route("/parent/communications"), label: "Announcements" }, { href: route("/parent/calendar"), label: "Calendar" }, { href: "/profile", label: "Profile" }] };
     case "student":
-      return { role, label: "Student", homeHref: "/student", links: [{ href: "/student", label: "Home" }, { href: "/student/assignments", label: "Assignments" }, { href: "/student/attendance", label: "Attendance" }] };
+      return { role, label: "Student", homeHref: "/student", links: [{ href: "/student", label: "Home" }, { href: "/student/assignments", label: "Assignments" }, { href: "/student/attendance", label: "Attendance" }, { href: route("/student/communications"), label: "Announcements" }, { href: route("/student/calendar"), label: "Calendar" }] };
     case "profile":
       return { role, label: "Account", homeHref: "/dashboard", links: [{ href: "/dashboard", label: "Dashboard" }, { href: "/profile", label: "Profile" }] };
   }
