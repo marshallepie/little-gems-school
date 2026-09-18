@@ -126,5 +126,106 @@ do $$ begin
 end $$;
 reset role;
 
+-- Re-provisioning is a trusted backend capability. Browser callers cannot invoke it,
+-- and even a non-proprietor actor cannot use the service role to attribute a reset.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'b1000000-0000-0000-0000-000000000002', true);
+do $$ begin
+  begin
+    perform public.reprovision_portal_account_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000002', 'admin', 'headmistress');
+    raise exception 'browser caller invoked re-provisioning capability';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+-- The reconciliation audit capability is likewise server-only, retains the
+-- original active proprietor, and persists no metadata/secrets.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'b1000000-0000-0000-0000-000000000001', true);
+do $$ begin
+  begin
+    perform public.record_account_reprovision_reconciliation_needed_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000001');
+    raise exception 'browser caller recorded a re-provision reconciliation event';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+select public.record_account_reprovision_reconciliation_needed_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000001');
+reset role;
+do $$ begin
+  if not exists (select 1 from public.authorization_events where actor_user_id = 'b1000000-0000-0000-0000-000000000001' and subject_user_id = 'c1000000-0000-0000-0000-000000000004' and event_type = 'account_reprovision_reconciliation_needed' and metadata = '{}'::jsonb) then raise exception 're-provision reconciliation audit event missing or contains metadata'; end if;
+end $$;
+
+-- The original active proprietor can restore an Auth-ban-completed account with a
+-- fresh role and position, but a trusted backend still validates a non-proprietor actor.
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+do $$ begin
+  begin
+    perform public.reprovision_portal_account_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000002', 'admin', 'headmistress');
+    raise exception 'non-proprietor actor re-provisioned an account';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+select public.reprovision_portal_account_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000001', 'admin', 'headmistress');
+reset role;
+do $$ begin
+  if not exists (select 1 from public.profiles where id = 'c1000000-0000-0000-0000-000000000004' and is_active and default_role_code = 'admin' and auth_ban_state = 'not_required' and auth_ban_last_failed_at is null and auth_ban_completed_at is null) then raise exception 're-provision did not restore the active profile or clear Auth-ban status'; end if;
+  if not exists (select 1 from public.user_roles ur join public.roles r on r.id = ur.role_id where ur.user_id = 'c1000000-0000-0000-0000-000000000004' and r.code = 'admin') then raise exception 're-provision did not restore the normalized selected role'; end if;
+  if not exists (select 1 from public.admin_position_assignments where user_id = 'c1000000-0000-0000-0000-000000000004' and position_code = 'headmistress' and revoked_at is null) then raise exception 're-provision did not restore the selected administrator position'; end if;
+  if not exists (select 1 from public.authorization_events where actor_user_id = 'b1000000-0000-0000-0000-000000000001' and subject_user_id = 'c1000000-0000-0000-0000-000000000004' and event_type = 'account_reprovisioned' and metadata = '{}'::jsonb) then raise exception 're-provision audit event missing or contains metadata'; end if;
+end $$;
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+do $$ begin
+  begin
+    perform public.reprovision_portal_account_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000001', 'teacher', null);
+    raise exception 'active account was re-provisioned';
+  exception when no_data_found then null;
+  end;
+  begin
+    perform public.reprovision_portal_account_from_server('b1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000001', 'admin', 'senior_administrator');
+    raise exception 'active proprietor account was re-provisioned';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+-- A fully deprovisioned account with a revoked proprietor assignment remains an
+-- operator-only ownership-history record. The direct fixture is valid because
+-- assignments are historical rows (revoked_at/revoked_by are both required);
+-- lifecycle RPCs never grant or mutate proprietor assignments.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'b1000000-0000-0000-0000-000000000001', true);
+select public.deprovision_portal_account('c1000000-0000-0000-0000-000000000004');
+reset role;
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+select public.record_account_auth_ban_state_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000001', 'succeeded');
+reset role;
+insert into public.admin_position_assignments(user_id, position_code, assigned_by, revoked_at, revoked_by)
+values ('c1000000-0000-0000-0000-000000000004', 'proprietor_super_admin', 'b1000000-0000-0000-0000-000000000001', now(), 'b1000000-0000-0000-0000-000000000001');
+set local role service_role;
+select set_config('request.jwt.claim.role', 'service_role', true);
+do $$ begin
+  begin
+    perform public.reprovision_portal_account_from_server('c1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000001', 'teacher', null);
+    raise exception 'historical proprietor account was re-provisioned';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+do $$ begin
+  if not exists (select 1 from public.profiles where id = 'c1000000-0000-0000-0000-000000000004' and not is_active and auth_ban_state = 'succeeded') then raise exception 'historical proprietor rejection reactivated the profile'; end if;
+  if exists (select 1 from public.user_roles where user_id = 'c1000000-0000-0000-0000-000000000004') then raise exception 'historical proprietor rejection restored a normalized role'; end if;
+  if exists (select 1 from public.admin_position_assignments where user_id = 'c1000000-0000-0000-0000-000000000004' and revoked_at is null) then raise exception 'historical proprietor fixture retained an active position'; end if;
+end $$;
+
 rollback;
 \echo 'PASS: account lifecycle and self-profile behavioural tests'

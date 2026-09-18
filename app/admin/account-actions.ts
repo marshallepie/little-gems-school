@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireProprietorSession } from "@/lib/auth/require-role";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { completePendingAuthBan } from "@/lib/account-lifecycle";
+import { completePendingAuthBan, completeReprovisionSaga, type ReprovisionLifecycleState } from "@/lib/account-lifecycle";
 
 const roleSchema = z.enum(["admin", "teacher", "parent", "student", "secretary"]);
 const positionSchema = z.enum(["senior_administrator", "headmistress"]);
@@ -18,6 +18,14 @@ const createAccountSchema = z.object({
   if (role !== "admin" && position) ctx.addIssue({ code: "custom", path: ["position"], message: "Only administrator accounts can receive an administrator position." });
 });
 const deprovisionSchema = z.object({ userId: z.string().uuid() });
+const reprovisionSchema = z.object({
+  userId: z.string().uuid(),
+  role: roleSchema,
+  position: positionSchema.optional(),
+}).superRefine(({ role, position }, ctx) => {
+  if (role === "admin" && !position) ctx.addIssue({ code: "custom", path: ["position"], message: "Choose an administrator position." });
+  if (role !== "admin" && position) ctx.addIssue({ code: "custom", path: ["position"], message: "Only administrator accounts can receive an administrator position." });
+});
 const positionChangeSchema = z.object({ userId: z.string().uuid(), position: z.union([positionSchema, z.literal("")]) });
 const websiteEditorSchema = z.object({ userId: z.string().uuid(), enabled: z.enum(["true", "false"]) });
 
@@ -82,6 +90,56 @@ export async function retryPendingAuthBan(formData: FormData): Promise<void> {
   const parsed = deprovisionSchema.safeParse({ userId: formData.get("userId") });
   if (!parsed.success) throw new Error("Invalid account.");
   await completeAuthBan(parsed.data.userId);
+}
+
+/**
+ * Re-provision only after the Auth-ban saga is durably complete. Auth is reset and
+ * unbanned before the database activation RPC; an RPC failure is compensated by
+ * re-banning only when a fresh read confirms the profile is still inactive.
+ */
+export async function reprovisionAccount(_previous: AccountActionState, formData: FormData): Promise<AccountActionState> {
+  const parsed = reprovisionSchema.safeParse({
+    userId: formData.get("userId"), role: formData.get("role"), position: formData.get("position") || undefined,
+  });
+  if (!parsed.success) return initialError(parsed.error.issues[0]?.message ?? "Invalid re-provisioning details.");
+
+  const proprietor = await requireProprietorSession();
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("is_active, auth_ban_state")
+    .eq("id", parsed.data.userId)
+    .maybeSingle();
+  if (profileError || !profile || profile.is_active || profile.auth_ban_state !== "succeeded") {
+    return initialError("Only a fully deprovisioned account can be re-provisioned.");
+  }
+
+  const password = temporaryPassword();
+  const result = await completeReprovisionSaga({
+    resetPasswordAndUnban: async () => admin.auth.admin.updateUserById(parsed.data.userId, { password, ban_duration: "none" }),
+    activateDatabase: async () => admin.rpc("reprovision_portal_account_from_server", {
+      target_user_id: parsed.data.userId,
+      actor_user_id: proprietor.userId,
+      target_role_code: parsed.data.role,
+      target_position_code: parsed.data.position ?? null,
+    }),
+    readLifecycleState: async (): Promise<ReprovisionLifecycleState> => {
+      const { data: currentProfile, error } = await admin.from("profiles").select("is_active").eq("id", parsed.data.userId).maybeSingle();
+      if (error || !currentProfile) return "unknown";
+      return currentProfile.is_active ? "active" : "inactive";
+    },
+    rebanAuthUser: async () => admin.auth.admin.updateUserById(parsed.data.userId, { ban_duration: "876000h" }),
+    // This server-only, append-only event documents an indeterminate result without
+    // recording the temporary password or any other secret.
+    recordReconciliationNeeded: async () => admin.rpc("record_account_reprovision_reconciliation_needed_from_server", {
+      target_user_id: parsed.data.userId,
+      actor_user_id: proprietor.userId,
+    }),
+  });
+  if (!result.completed) return initialError(result.error);
+
+  revalidatePath("/admin/accounts");
+  return { temporaryPassword: password, email: "the re-provisioned account" };
 }
 
 export async function changeWebsiteContentEditor(formData: FormData): Promise<void> {
