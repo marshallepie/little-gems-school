@@ -98,3 +98,14 @@ The public site now provides responsive, accessible Home, About, Academics, Admi
 ## Before any live authentication or data
 
 An approved Supabase project, credentials, privacy/legal and retention decisions, identity/invitation workflow, stakeholder workflow decisions, fuller RLS test coverage, and staging/backup procedures are still required. Do not add real pupils, staff, guardians, or production exports to local seed data.
+
+
+## Public registration and account hierarchy
+
+`/signup` uses the browser Supabase client only (`auth.signUp`) and lets a student choose and confirm a password. It uses a fixed same-origin `/login` confirmation landing route, gives the same confirmation notice without disclosing whether an email already exists, and never creates a role, administrator position, school person record, or browser-visible service capability. New identities remain unassigned until a server-controlled admission/provisioning workflow links them. `/login` and portal account controls visibly link to `/`; sign-out continues to return to `/login`.
+
+The account-management route is available to active Senior Administrator and Administrator (`headmistress`) sessions as well as the proprietor. The database-enforced create matrix is: proprietor may create Senior Administrator, Administrator, and non-admin roles; Senior Administrator may create Administrator and non-admin roles; Administrator may create only non-admin roles. FormData is not authoritative: the cookie-session actor is checked first and the service-only RPC revalidates the original actor and target. Existing deprovisioning remains the default for real accounts. Only the active proprietor can explicitly classify a dependency-free fictional fixture as disposable, then separately confirm destructive purge. The purge refuses self/proprietor, unmarked identities, people/history/audit dependencies, and never infers test status from an address or name.
+
+### Required non-production Supabase configuration gate
+
+This repository does **not** configure an Auth email sender, template, CAPTCHA, rate limits, or a real redirect allow-list. Before enabling public registration in a non-production Supabase dashboard, configure and test the confirmation/welcome template (never include passwords), sender/domain, the exact site and `/login` redirect URL, CAPTCHA, and rate limiting. `.env.example` contains no secret and only the normal browser API settings; do not add provider credentials to it.

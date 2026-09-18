@@ -84,6 +84,7 @@ q phase3_communications_calendar_rls.sql
 q public_admissions_rls.sql
 q secretary_cms_workflow_rls.sql
 q secure_image_uploads_rls.sql
+q account_hierarchy_disposable_purge.sql
 
 echo
 echo "OK: all behavioural database tests completed."

@@ -3,7 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireProprietorSession } from "@/lib/auth/require-role";
+import { requireAccountManagementSession, requireProprietorSession } from "@/lib/auth/require-role";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { completePendingAuthBan, completeReprovisionSaga, type ReprovisionLifecycleState } from "@/lib/account-lifecycle";
 
@@ -43,7 +43,7 @@ export async function createAccount(_previous: AccountActionState, formData: For
   });
   if (!parsed.success) return initialError(parsed.error.issues[0]?.message ?? "Invalid account details.");
 
-  const proprietor = await requireProprietorSession();
+  const actor = await requireAccountManagementSession();
   const password = temporaryPassword();
   const admin = createAdminClient();
   const { data: created, error: createError } = await admin.auth.admin.createUser({
@@ -51,8 +51,8 @@ export async function createAccount(_previous: AccountActionState, formData: For
   });
   if (createError || !created.user) return initialError(createError?.message ?? "Unable to create account.");
 
-  const { error: provisionError } = await proprietor.supabase.rpc("provision_portal_account", {
-    target_user_id: created.user.id, target_role_code: parsed.data.role, target_position_code: parsed.data.position ?? null,
+  const { error: provisionError } = await admin.rpc("provision_portal_account_from_server", {
+    target_user_id: created.user.id, actor_user_id: actor.userId, target_role_code: parsed.data.role, target_position_code: parsed.data.position ?? null,
   });
   if (provisionError) {
     const { error: rollbackError } = await admin.auth.admin.deleteUser(created.user.id);
@@ -164,5 +164,55 @@ export async function changeAdministratorPosition(formData: FormData): Promise<v
     target_position_code: parsed.data.position || null,
   });
   if (error) throw new Error(error.message);
+  revalidatePath("/admin/accounts");
+}
+
+
+const disposableSchema = z.object({ userId: z.string().uuid(), confirmation: z.literal("PURGE DISPOSABLE") });
+
+function isConfirmedAuthUserNotFound(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  return "status" in error && error.status === 404;
+}
+
+/** Explicit classification is separate from destructive purge and proprietor-only. */
+export async function classifyDisposableTestAccount(formData: FormData): Promise<void> {
+  const parsed = disposableSchema.safeParse({ userId: formData.get("userId"), confirmation: formData.get("confirmation") });
+  if (!parsed.success) throw new Error("Type PURGE DISPOSABLE to classify a disposable test account.");
+  const proprietor = await requireProprietorSession();
+  const { error } = await createAdminClient().rpc("classify_disposable_test_account_from_server", { target_user_id: parsed.data.userId, actor_user_id: proprietor.userId });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/accounts");
+}
+
+/** Purge only explicitly classified, dependency-free disposable fixtures. */
+export async function purgeDisposableTestAccount(formData: FormData): Promise<void> {
+  const parsed = disposableSchema.safeParse({ userId: formData.get("userId"), confirmation: formData.get("confirmation") });
+  if (!parsed.success) throw new Error("Type PURGE DISPOSABLE to confirm this destructive action.");
+  const proprietor = await requireProprietorSession();
+  const admin = createAdminClient();
+  const { error: preflightError } = await admin.rpc("begin_disposable_account_purge_from_server", { target_user_id: parsed.data.userId, actor_user_id: proprietor.userId });
+  if (preflightError) throw new Error(preflightError.message);
+  const { error: deleteError } = await admin.auth.admin.deleteUser(parsed.data.userId);
+  if (deleteError) {
+    await admin.rpc("record_disposable_account_purge_auth_failed_from_server", { target_user_id: parsed.data.userId, actor_user_id: proprietor.userId });
+    throw new Error("External Auth deletion failed; database access remains revoked and the disposable fixture requires a proprietor retry.");
+  }
+  const { data: readBack, error: readBackError } = await admin.auth.admin.getUserById(parsed.data.userId);
+  // Only the Auth API's expected not-found response confirms deletion. A null
+  // user with no error is indeterminate and must enter reconciliation.
+  const confirmedAbsent = !readBack.user && isConfirmedAuthUserNotFound(readBackError);
+  if (!confirmedAbsent) {
+    const { error: reconciliationError } = await admin.rpc("record_disposable_account_purge_auth_verification_failed_from_server", {
+      target_user_id: parsed.data.userId,
+      actor_user_id: proprietor.userId,
+    });
+    if (reconciliationError) {
+      throw new Error("Auth deletion could not be verified and the reconciliation audit could not be recorded; database access remains revoked for operator review.");
+    }
+    throw new Error(readBack.user
+      ? "Auth deletion could not be verified; database access remains revoked for operator review."
+      : "Auth deletion verification failed; database access remains revoked and the disposable fixture requires proprietor reconciliation.");
+  }
   revalidatePath("/admin/accounts");
 }
