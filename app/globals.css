@@ -8,6 +8,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .primary-cta { background-color: var(--primary-cta-bg); color: var(--primary-cta-fg); transition: background-color 150ms ease; }
 .primary-cta:hover { background-color: var(--primary-cta-bg-hover); }
 .primary-cta:disabled { background-color: var(--primary-cta-bg-disabled); cursor: not-allowed; }
+.memorial-banner, .memorial-banner:visited, .memorial-banner:hover { color: #ffffff; }
+.memorial-banner .memorial-banner-secondary { color: #e2e8f0; }
+.memorial-banner:focus-visible { color: #ffffff; outline-color: #ffffff; }
 .portal-navigation { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; border-block: 1px solid #cbd5e1; padding-block: .75rem; }
 .portal-navigation-links { display: flex; flex-wrap: wrap; gap: .5rem; }
 .portal-navigation-link, .portal-back-link { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; border: 2px solid #334155; border-radius: .5rem; padding: .5rem .75rem; color: #172033; font-weight: 700; text-decoration: none; }

@@ -134,6 +134,16 @@ Creating an enabling environment for discovery and development of TALENTS and La
 - [x] UI-only updates affordance is explicitly non-authoritative: no unread count, delivery claim, or durable read tracking exists.
 - [ ] **Database-validation gate:** run `scripts/db-behavioural-validate.sh` on the disposable host-side Supabase stack. It now invokes self-contained `supabase/tests/phase3_communications_calendar_rls.sql`; Docker/Supabase was unavailable in this environment, so this coverage has not been executed here.
 
+## Memorial Notice — Mrs. Francisca Ojoryemi Osaghae (née Anumudu) (September 2026)
+
+- [x] Added public memorial notice route at `/in-memoriam/francisca-osaghae` and a slim public-site banner that links to it. Portal and authenticated routes remain outside the public layout.
+- [x] Added `public/images/francisca-osaghae-portrait-clean.webp`, a clean 630×1380 WebP crop from official source `img_0c787ee37ce8.jpg`; it excludes mobile UI, black borders, and poster text.
+- [x] Published approved factual notice copy: Mrs. Francisca Ojoryemi Osaghae (née Anumudu), aged 55 years, died 11 September 2026; Service of Songs on Friday, 25 September 2026, 4:00 pm at Grace Hall, MFM HQ, Onike, Yaba, Lagos; Funeral Service and Interment on Friday, 2 October 2026, 10:00 am at Pa Philips Anumudu Compound, Ebu Omor, Oshimili North, Delta State, Nigeria.
+- [x] Published Marshall's approved personal tribute and school tribute verbatim after the official service detail cards, with semantic headings and clear attribution.
+- [x] Corrected the public condolence-banner link states to retain white/light high-contrast text against navy, including hover and keyboard-focus states.
+
+---
+
 ## Notes & To-Dos
 
 - [x] Receive and assess all 13 images ✅
